@@ -1,0 +1,39 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Java
+*.class
+*.log
+hs_err_pid*
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.local
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Logs
+logs/
+*.log
