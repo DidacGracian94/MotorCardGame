@@ -1,6 +1,6 @@
 package com.motorcardgame.engine.rule.registry;
 
-import com.motorcardgame.engine.rule.Target;
+import com.motorcardgame.engine.rule.TargetFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -15,21 +15,21 @@ class TargetRegistryTest {
     @Test
     void registersAndReturnsTarget() {
         TargetRegistry registry = new TargetRegistry();
-        Target target = ctx -> List.of();
+        TargetFactory factory = (node, parser) -> ctx -> List.of();
 
-        registry.register("CURRENT_PLAYER", target);
+        registry.register("CURRENT_PLAYER", factory);
 
-        assertSame(target, registry.get("CURRENT_PLAYER"));
+        assertSame(factory, registry.get("CURRENT_PLAYER"));
         assertTrue(registry.contains("CURRENT_PLAYER"));
     }
 
     @Test
     void rejectsDuplicateRegistration() {
         TargetRegistry registry = new TargetRegistry();
-        registry.register("CURRENT_PLAYER", ctx -> List.of());
+        registry.register("CURRENT_PLAYER", (node, parser) -> ctx -> List.of());
 
         assertThrows(IllegalStateException.class,
-                () -> registry.register("CURRENT_PLAYER", ctx -> List.of()));
+                () -> registry.register("CURRENT_PLAYER", (node, parser) -> ctx -> List.of()));
     }
 
     @Test

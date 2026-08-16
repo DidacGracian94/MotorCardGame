@@ -2,9 +2,6 @@ package com.motorcardgame.engine.rule;
 
 import com.motorcardgame.engine.event.Event;
 import com.motorcardgame.engine.rule.condition.AndCondition;
-import com.motorcardgame.engine.rule.registry.ActionRegistry;
-import com.motorcardgame.engine.rule.registry.ConditionRegistry;
-import com.motorcardgame.engine.rule.registry.TargetRegistry;
 import com.motorcardgame.engine.state.Card;
 import com.motorcardgame.engine.state.CardId;
 import com.motorcardgame.engine.state.GameState;
@@ -95,26 +92,16 @@ class RuleEngineTest {
     }
 
     private static RuleEngine newDrawTopCardEngine() {
-        ConditionRegistry conditionRegistry = new ConditionRegistry();
-        conditionRegistry.register("PILE_HAS_CARDS",
-                ctx -> !((LinearZone) ctx.gameState().sharedZone("pile")).isEmpty());
-
-        TargetRegistry targetRegistry = new TargetRegistry();
-        targetRegistry.register("CURRENT_PLAYER", ctx -> List.of(ctx.gameState().currentPlayer()));
-
-        ActionRegistry actionRegistry = new ActionRegistry();
-        actionRegistry.register("DRAW_TOP_CARD", ctx -> {
+        Condition pileHasCards = ctx -> !((LinearZone) ctx.gameState().sharedZone("pile")).isEmpty();
+        Target currentPlayer = ctx -> List.of(ctx.gameState().currentPlayer());
+        Action drawTopCard = ctx -> {
             Player player = (Player) ctx.target().orElseThrow();
             LinearZone pile = (LinearZone) ctx.gameState().sharedZone("pile");
             LinearZone hand = (LinearZone) ctx.gameState().zoneOf(player.id(), "hand");
             hand.pushTop(pile.popTop());
-        });
+        };
 
-        Rule rule = new Rule(
-                "TURN_STARTED",
-                conditionRegistry.get("PILE_HAS_CARDS"),
-                targetRegistry.get("CURRENT_PLAYER"),
-                actionRegistry.get("DRAW_TOP_CARD"));
+        Rule rule = new Rule("TURN_STARTED", pileHasCards, currentPlayer, drawTopCard);
 
         return new RuleEngine(List.of(rule));
     }

@@ -1,31 +1,31 @@
 package com.motorcardgame.engine.rule.registry;
 
-import com.motorcardgame.engine.rule.Target;
+import com.motorcardgame.engine.rule.TargetFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Registro de capacidades {@link Target} disponibles para el motor, indexadas por nombre
- * (p.ej. "CURRENT_PLAYER").
+ * Registro de factories de {@link com.motorcardgame.engine.rule.Target} disponibles para el
+ * motor, indexadas por nombre (p.ej. "CURRENT_PLAYER").
  */
 public final class TargetRegistry {
 
-    private final Map<String, Target> targets = new HashMap<>();
+    private final Map<String, TargetFactory> targets = new HashMap<>();
 
-    public void register(String name, Target target) {
+    public void register(String name, TargetFactory factory) {
         if (targets.containsKey(name)) {
             throw new IllegalStateException("Target already registered: " + name);
         }
-        targets.put(name, target);
+        targets.put(name, factory);
     }
 
-    public Target get(String name) {
-        Target target = targets.get(name);
-        if (target == null) {
+    public TargetFactory get(String name) {
+        TargetFactory factory = targets.get(name);
+        if (factory == null) {
             throw new UnknownCapabilityException("target", name);
         }
-        return target;
+        return factory;
     }
 
     public boolean contains(String name) {

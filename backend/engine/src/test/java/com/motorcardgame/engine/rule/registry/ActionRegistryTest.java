@@ -1,6 +1,6 @@
 package com.motorcardgame.engine.rule.registry;
 
-import com.motorcardgame.engine.rule.Action;
+import com.motorcardgame.engine.rule.ActionFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -13,23 +13,23 @@ class ActionRegistryTest {
     @Test
     void registersAndReturnsAction() {
         ActionRegistry registry = new ActionRegistry();
-        Action action = ctx -> {
+        ActionFactory factory = (node, parser) -> ctx -> {
         };
 
-        registry.register("NEXT_PLAYER", action);
+        registry.register("NEXT_PLAYER", factory);
 
-        assertSame(action, registry.get("NEXT_PLAYER"));
+        assertSame(factory, registry.get("NEXT_PLAYER"));
         assertTrue(registry.contains("NEXT_PLAYER"));
     }
 
     @Test
     void rejectsDuplicateRegistration() {
         ActionRegistry registry = new ActionRegistry();
-        registry.register("NEXT_PLAYER", ctx -> {
+        registry.register("NEXT_PLAYER", (node, parser) -> ctx -> {
         });
 
         assertThrows(IllegalStateException.class,
-                () -> registry.register("NEXT_PLAYER", ctx -> {
+                () -> registry.register("NEXT_PLAYER", (node, parser) -> ctx -> {
                 }));
     }
 

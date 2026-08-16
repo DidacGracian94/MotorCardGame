@@ -1,31 +1,31 @@
 package com.motorcardgame.engine.rule.registry;
 
-import com.motorcardgame.engine.rule.Action;
+import com.motorcardgame.engine.rule.ActionFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Registro de capacidades {@link Action} disponibles para el motor, indexadas por nombre
- * (p.ej. "DRAW_CARDS").
+ * Registro de factories de {@link com.motorcardgame.engine.rule.Action} disponibles para el
+ * motor, indexadas por nombre (p.ej. "DRAW_CARDS").
  */
 public final class ActionRegistry {
 
-    private final Map<String, Action> actions = new HashMap<>();
+    private final Map<String, ActionFactory> actions = new HashMap<>();
 
-    public void register(String name, Action action) {
+    public void register(String name, ActionFactory factory) {
         if (actions.containsKey(name)) {
             throw new IllegalStateException("Action already registered: " + name);
         }
-        actions.put(name, action);
+        actions.put(name, factory);
     }
 
-    public Action get(String name) {
-        Action action = actions.get(name);
-        if (action == null) {
+    public ActionFactory get(String name) {
+        ActionFactory factory = actions.get(name);
+        if (factory == null) {
             throw new UnknownCapabilityException("action", name);
         }
-        return action;
+        return factory;
     }
 
     public boolean contains(String name) {

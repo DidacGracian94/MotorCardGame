@@ -1,31 +1,31 @@
 package com.motorcardgame.engine.rule.registry;
 
-import com.motorcardgame.engine.rule.Condition;
+import com.motorcardgame.engine.rule.ConditionFactory;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Registro de capacidades {@link Condition} disponibles para el motor, indexadas por nombre
- * (p.ej. "CARD_TYPE_IS").
+ * Registro de factories de {@link com.motorcardgame.engine.rule.Condition} disponibles para el
+ * motor, indexadas por nombre (p.ej. "CARD_ATTRIBUTE_EQUALS").
  */
 public final class ConditionRegistry {
 
-    private final Map<String, Condition> conditions = new HashMap<>();
+    private final Map<String, ConditionFactory> conditions = new HashMap<>();
 
-    public void register(String name, Condition condition) {
+    public void register(String name, ConditionFactory factory) {
         if (conditions.containsKey(name)) {
             throw new IllegalStateException("Condition already registered: " + name);
         }
-        conditions.put(name, condition);
+        conditions.put(name, factory);
     }
 
-    public Condition get(String name) {
-        Condition condition = conditions.get(name);
-        if (condition == null) {
+    public ConditionFactory get(String name) {
+        ConditionFactory factory = conditions.get(name);
+        if (factory == null) {
             throw new UnknownCapabilityException("condition", name);
         }
-        return condition;
+        return factory;
     }
 
     public boolean contains(String name) {

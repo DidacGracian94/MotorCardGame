@@ -1,6 +1,6 @@
 package com.motorcardgame.engine.rule.registry;
 
-import com.motorcardgame.engine.rule.Condition;
+import com.motorcardgame.engine.rule.ConditionFactory;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -13,21 +13,21 @@ class ConditionRegistryTest {
     @Test
     void registersAndReturnsCondition() {
         ConditionRegistry registry = new ConditionRegistry();
-        Condition condition = ctx -> true;
+        ConditionFactory factory = (node, parser) -> ctx -> true;
 
-        registry.register("CARD_TYPE_IS", condition);
+        registry.register("CARD_TYPE_IS", factory);
 
-        assertSame(condition, registry.get("CARD_TYPE_IS"));
+        assertSame(factory, registry.get("CARD_TYPE_IS"));
         assertTrue(registry.contains("CARD_TYPE_IS"));
     }
 
     @Test
     void rejectsDuplicateRegistration() {
         ConditionRegistry registry = new ConditionRegistry();
-        registry.register("CARD_TYPE_IS", ctx -> true);
+        registry.register("CARD_TYPE_IS", (node, parser) -> ctx -> true);
 
         assertThrows(IllegalStateException.class,
-                () -> registry.register("CARD_TYPE_IS", ctx -> false));
+                () -> registry.register("CARD_TYPE_IS", (node, parser) -> ctx -> false));
     }
 
     @Test

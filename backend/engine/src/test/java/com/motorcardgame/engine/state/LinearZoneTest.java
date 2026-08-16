@@ -46,6 +46,27 @@ class LinearZoneTest {
     }
 
     @Test
+    void peekTopAndPeekBottomDoNotRemoveCards() {
+        LinearZone zone = new LinearZone();
+        Card first = new Card(new CardId("c1"), Map.of());
+        Card second = new Card(new CardId("c2"), Map.of());
+
+        zone.pushTop(first);
+        zone.pushTop(second);
+
+        assertEquals(second, zone.peekTop());
+        assertEquals(first, zone.peekBottom());
+        assertEquals(2, zone.size());
+    }
+
+    @Test
+    void peekBottomOnEmptyZoneThrows() {
+        LinearZone zone = new LinearZone();
+
+        assertThrows(NoSuchElementException.class, zone::peekBottom);
+    }
+
+    @Test
     void cardsViewReflectsTopToBottomOrder() {
         LinearZone zone = new LinearZone();
         Card first = new Card(new CardId("c1"), Map.of());

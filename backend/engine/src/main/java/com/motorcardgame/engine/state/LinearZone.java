@@ -34,6 +34,14 @@ public final class LinearZone implements Zone {
         return card;
     }
 
+    public Card peekBottom() {
+        Card card = cards.peekLast();
+        if (card == null) {
+            throw new NoSuchElementException("Zone is empty");
+        }
+        return card;
+    }
+
     public void pushBottom(Card card) {
         cards.addLast(Objects.requireNonNull(card, "card"));
     }
