@@ -8,7 +8,8 @@
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "gameDefinitionId", "value": "" },
-    { "key": "versionNumber", "value": "" }
+    { "key": "versionNumber", "value": "" },
+    { "key": "gameInstanceId", "value": "" }
   ],
   "item": [
     {
@@ -215,6 +216,115 @@
               "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/versions/9999",
               "host": ["{{baseUrl}}"],
               "path": ["api", "game-definitions", "{{gameDefinitionId}}", "versions", "9999"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "GameInstance",
+      "item": [
+        {
+          "name": "Create instance",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('gameInstanceId', body.id);",
+                  "pm.test('state is a placeholder', () => pm.expect(body.state.status).to.eql('NOT_STARTED'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"versionNumber\": {{versionNumber}}\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/instances",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "instances"]
+            }
+          }
+        },
+        {
+          "name": "List instances",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/instances",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "instances"]
+            }
+          }
+        },
+        {
+          "name": "Get instance by id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/instances/{{gameInstanceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "instances", "{{gameInstanceId}}"]
+            }
+          }
+        },
+        {
+          "name": "[Error] Create instance - 404 GameDefinition no existe",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 404', () => pm.response.to.have.status(404));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"versionNumber\": 1\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{$guid}}/instances",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{$guid}}", "instances"]
+            }
+          }
+        },
+        {
+          "name": "[Error] Create instance - 404 versión no existe",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 404', () => pm.response.to.have.status(404));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"versionNumber\": 9999\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/instances",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "instances"]
+            }
+          }
+        },
+        {
+          "name": "[Error] Get instance - 404 no existe",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 404', () => pm.response.to.have.status(404));"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/instances/{{$guid}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "instances", "{{$guid}}"]
             }
           }
         }

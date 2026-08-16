@@ -31,6 +31,6 @@ class MotorCardGameApplicationTests {
         Integer appliedMigrations = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success = true", Integer.class);
 
-        assertThat(appliedMigrations).isEqualTo(3);
+        assertThat(appliedMigrations).isEqualTo(4);
     }
 }
