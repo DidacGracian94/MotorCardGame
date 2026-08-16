@@ -1,0 +1,72 @@
+package com.motorcardgame.engine.state;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class LinearZoneTest {
+
+    @Test
+    void popsTopInLifoOrder() {
+        LinearZone zone = new LinearZone();
+        Card first = new Card(new CardId("c1"), Map.of());
+        Card second = new Card(new CardId("c2"), Map.of());
+
+        zone.pushTop(first);
+        zone.pushTop(second);
+
+        assertEquals(second, zone.popTop());
+        assertEquals(first, zone.popTop());
+    }
+
+    @Test
+    void pushBottomAndPopBottom() {
+        LinearZone zone = new LinearZone();
+        Card first = new Card(new CardId("c1"), Map.of());
+        Card second = new Card(new CardId("c2"), Map.of());
+
+        zone.pushBottom(first);
+        zone.pushBottom(second);
+
+        assertEquals(second, zone.popBottom());
+        assertEquals(first, zone.popBottom());
+    }
+
+    @Test
+    void popTopOnEmptyZoneThrows() {
+        LinearZone zone = new LinearZone();
+
+        assertThrows(NoSuchElementException.class, zone::popTop);
+    }
+
+    @Test
+    void cardsViewReflectsTopToBottomOrder() {
+        LinearZone zone = new LinearZone();
+        Card first = new Card(new CardId("c1"), Map.of());
+        Card second = new Card(new CardId("c2"), Map.of());
+
+        zone.pushTop(first);
+        zone.pushTop(second);
+
+        assertEquals(List.of(second, first), zone.cardsView());
+    }
+
+    @Test
+    void sizeAndIsEmpty() {
+        LinearZone zone = new LinearZone();
+
+        assertTrue(zone.isEmpty());
+        assertEquals(0, zone.size());
+
+        zone.pushTop(new Card(new CardId("c1"), Map.of()));
+
+        assertEquals(1, zone.size());
+        assertTrue(!zone.isEmpty());
+    }
+}

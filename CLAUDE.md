@@ -36,6 +36,24 @@ Antes de crear una capacidad nueva: ¿ya existe algo que resuelva esto? ¿se pue
 existente? ¿es realmente un concepto general o es específico de un juego? Preferir `CALCULATE_SCORE`
 sobre `BRISCA_CALCULATE_SCORE`.
 
+## Nota pendiente para cuando se diseñe el modelo de Zone en engine
+
+Todavía no existe (llegará con el diseño de `engine`). Cuando se diseñe, pensar desde el principio
+en dos ejes aunque el MVP (UNO) solo necesite el caso simple — para no rediseñar con partidas ya
+persistidas usando un modelo viejo:
+
+- **Ownership de la zona**: `SHARED` (un mazo/pila compartido, como en UNO/Brisca/Escoba) vs
+  `PER_PLAYER` (cada jugador tiene su propia instancia — necesario para juegos de combate estilo
+  Magic/Clash Royale, donde cada jugador lleva su propio mazo).
+- **Topología de la zona**: pila lineal (orden, tope, fondo — lo único que cubre el roadmap actual
+  con UNO/Brisca/Escoba) vs espacial/grid (posiciones, adyacencia — necesario para juegos de cartas
+  con tablero).
+
+`GameDefinitionVersion.config` es JSONB y opaco para `app`, así que esta decisión no afecta a las
+tablas/entidades de `app` (`game_definitions`, `game_definition_versions`) — vive enteramente dentro
+del modelo de `engine`. Es la misma filosofía de "capacidad genérica reutilizable" de la sección
+anterior, aplicada al modelo de zonas en vez de a las reglas.
+
 ## Arquitectura
 
 ```
@@ -133,6 +151,9 @@ puede requerir bump de versión (patch/minor/major según compatibilidad).
 - ¿El frontend cambia estado sin pasar por una acción validada por el motor? No se debe.
 - ¿Hay `"script"`/`"code"` en algún JSON de configuración? No se debe.
 - ¿Puede viajar la mano de un jugador por el canal público de WS? No se debe.
+- ¿Se ha añadido o cambiado un endpoint? Debe reflejarse también en la colección de Postman
+  (`backend/app/src/test/collection/MotorCardGame.postman_collection.json`) — si no, queda
+  desactualizada y deja de servir para probar la API manualmente.
 
 ## Estado actual
 

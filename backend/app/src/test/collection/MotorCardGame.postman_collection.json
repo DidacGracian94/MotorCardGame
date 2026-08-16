@@ -1,0 +1,224 @@
+{
+  "info": {
+    "_postman_id": "b6f2a1d0-6e2a-4c1a-9a3e-motorcardgame-app",
+    "name": "MotorCardGame - app",
+    "description": "Requests manuales para probar los endpoints de GameDefinition y GameDefinitionVersion contra una instancia local de app (mvn spring-boot:run -pl backend/app).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "gameDefinitionId", "value": "" },
+    { "key": "versionNumber", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "GameDefinition",
+      "item": [
+        {
+          "name": "Create GameDefinition",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('gameDefinitionId', body.id);",
+                  "pm.test('has id', () => pm.expect(body.id).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{$guid}}\",\n  \"name\": \"UNO\",\n  \"slug\": \"uno-{{$timestamp}}\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/game-definitions", "host": ["{{baseUrl}}"], "path": ["api", "game-definitions"] }
+          }
+        },
+        {
+          "name": "List GameDefinitions",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/game-definitions", "host": ["{{baseUrl}}"], "path": ["api", "game-definitions"] }
+          }
+        },
+        {
+          "name": "Get GameDefinition by id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Rename GameDefinition",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"UNO Clásico\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}"]
+            }
+          }
+        },
+        {
+          "name": "[Error] Get GameDefinition - 404 not found",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 404', () => pm.response.to.have.status(404));"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{$guid}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{$guid}}"]
+            }
+          }
+        },
+        {
+          "name": "[Error] Create GameDefinition - 400 slug inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 400', () => pm.response.to.have.status(400));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{$guid}}\",\n  \"name\": \"Juego Inválido\",\n  \"slug\": \"Slug Con Mayúsculas!\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/game-definitions", "host": ["{{baseUrl}}"], "path": ["api", "game-definitions"] }
+          }
+        },
+        {
+          "name": "[Error] Create GameDefinition - 409 slug duplicado",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 409', () => pm.response.to.have.status(409));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ownerId\": \"{{$guid}}\",\n  \"name\": \"Duplicado\",\n  \"slug\": \"slug-duplicado-fijo\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/game-definitions", "host": ["{{baseUrl}}"], "path": ["api", "game-definitions"] },
+            "description": "Ejecutar esta request DOS veces seguidas: la primera crea (201), la segunda choca con el slug fijo (409)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "GameDefinitionVersion",
+      "item": [
+        {
+          "name": "Publish version",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('versionNumber', body.versionNumber);",
+                  "pm.test('versionNumber is a number', () => pm.expect(body.versionNumber).to.be.a('number'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"config\": {\n    \"zones\": [\"deck\", \"discard\", \"hand\"],\n    \"rules\": []\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/versions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "versions"]
+            }
+          }
+        },
+        {
+          "name": "List versions",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/versions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "versions"]
+            }
+          }
+        },
+        {
+          "name": "Get version by number",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/versions/{{versionNumber}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "versions", "{{versionNumber}}"]
+            }
+          }
+        },
+        {
+          "name": "[Error] Publish version - 404 GameDefinition no existe",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 404', () => pm.response.to.have.status(404));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"config\": {}\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{$guid}}/versions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{$guid}}", "versions"]
+            }
+          }
+        },
+        {
+          "name": "[Error] Get version - 404 no existe",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 404', () => pm.response.to.have.status(404));"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/versions/9999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "versions", "9999"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
