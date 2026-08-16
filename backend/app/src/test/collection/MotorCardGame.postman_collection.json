@@ -152,7 +152,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"config\": {\n    \"zones\": [\"deck\", \"discard\", \"hand\"],\n    \"rules\": []\n  }\n}"
+              "raw": "{\n  \"config\": {\n    \"zones\": [\n      { \"name\": \"deck\", \"ownership\": \"SHARED\", \"shuffle\": true },\n      { \"name\": \"discard\", \"ownership\": \"SHARED\" },\n      { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n    ],\n    \"cards\": [\n      { \"id\": \"red\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"RED\" } },\n      { \"id\": \"blue\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"BLUE\" } }\n    ],\n    \"rules\": [\n      {\n        \"event\": \"GAME_STARTED\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"ALL_PLAYERS\" },\n        \"action\": {\n          \"type\": \"REPEAT\",\n          \"times\": 7,\n          \"action\": {\n            \"type\": \"DRAW_CARDS\",\n            \"count\": 1,\n            \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n            \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n          }\n        }\n      }\n    ]\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/versions",
@@ -235,7 +235,7 @@
                   "pm.test('status is 201', () => pm.response.to.have.status(201));",
                   "const body = pm.response.json();",
                   "pm.collectionVariables.set('gameInstanceId', body.id);",
-                  "pm.test('state is a placeholder', () => pm.expect(body.state.status).to.eql('NOT_STARTED'));"
+                  "pm.test('deals a hand to each player', () => pm.expect(body.state.perPlayerZones.hand.alice.length).to.eql(7));"
                 ]
               }
             }
@@ -243,7 +243,10 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"versionNumber\": {{versionNumber}}\n}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"versionNumber\": {{versionNumber}},\n  \"players\": [\n    { \"id\": \"alice\", \"displayName\": \"Alice\" },\n    { \"id\": \"bob\", \"displayName\": \"Bob\" }\n  ]\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/instances",
               "host": ["{{baseUrl}}"],
@@ -284,7 +287,10 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"versionNumber\": 1\n}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"versionNumber\": 1,\n  \"players\": [ { \"id\": \"alice\", \"displayName\": \"Alice\" } ]\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/game-definitions/{{$guid}}/instances",
               "host": ["{{baseUrl}}"],
@@ -303,7 +309,29 @@
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"versionNumber\": 9999\n}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"versionNumber\": 9999,\n  \"players\": [ { \"id\": \"alice\", \"displayName\": \"Alice\" } ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/instances",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "instances"]
+            }
+          }
+        },
+        {
+          "name": "[Error] Create instance - 400 sin jugadores",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 400', () => pm.response.to.have.status(400));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"versionNumber\": {{versionNumber}},\n  \"players\": []\n}" },
             "url": {
               "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/instances",
               "host": ["{{baseUrl}}"],

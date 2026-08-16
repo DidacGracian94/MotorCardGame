@@ -24,7 +24,21 @@ public final class GameState {
     private final Map<String, Map<PlayerId, Zone>> perPlayerZones = new LinkedHashMap<>();
 
     public GameState(List<Player> players) {
+        this(players, 0);
+    }
+
+    /**
+     * Reconstruye un estado con el turno ya avanzado a un jugador concreto — lo usa
+     * {@code GameStateSerializer} al deserializar un {@code GameState} persistido, donde el
+     * índice de turno es parte de lo guardado, no algo que se recalcule avanzando turno a turno.
+     */
+    public GameState(List<Player> players, int currentPlayerIndex) {
         this.players = List.copyOf(Objects.requireNonNull(players, "players"));
+        boolean outOfRange = currentPlayerIndex < 0 || currentPlayerIndex >= this.players.size();
+        if (!this.players.isEmpty() && outOfRange) {
+            throw new IndexOutOfBoundsException("currentPlayerIndex out of range: " + currentPlayerIndex);
+        }
+        this.currentPlayerIndex = currentPlayerIndex;
     }
 
     public List<Player> players() {
@@ -33,6 +47,10 @@ public final class GameState {
 
     public Player currentPlayer() {
         return players.get(currentPlayerIndex);
+    }
+
+    public int currentPlayerIndex() {
+        return currentPlayerIndex;
     }
 
     public void advanceTurn() {
@@ -78,5 +96,22 @@ public final class GameState {
 
     public Zone zoneOfCurrentPlayer(String name) {
         return zoneOf(currentPlayer().id(), name);
+    }
+
+    /**
+     * Vista de solo lectura de las zonas compartidas registradas, indexadas por nombre. Existe
+     * para que {@code GameStateSerializer} pueda enumerar qué zonas hay — sin esto no habría
+     * forma de persistir el estado completo, solo de consultar una zona conocida de antemano.
+     */
+    public Map<String, Zone> sharedZones() {
+        return Map.copyOf(sharedZones);
+    }
+
+    /**
+     * Vista de solo lectura de las zonas por jugador registradas, indexadas por nombre y luego
+     * por propietario. Mismo motivo que {@link #sharedZones()}.
+     */
+    public Map<String, Map<PlayerId, Zone>> perPlayerZones() {
+        return Map.copyOf(perPlayerZones);
     }
 }

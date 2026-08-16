@@ -14,6 +14,20 @@ public final class LinearZone implements Zone {
 
     private final Deque<Card> cards = new ArrayDeque<>();
 
+    /**
+     * Construye una zona con las cartas dadas en el orden indicado (primer elemento = tope). Lo
+     * usan tanto la construcción del estado inicial desde config (mazo ya barajado) como la
+     * reconstrucción desde el JSON persistido de un {@link GameState}, donde el orden exacto debe
+     * preservarse.
+     */
+    public static LinearZone ofTopToBottom(List<Card> cardsTopToBottom) {
+        LinearZone zone = new LinearZone();
+        for (int i = cardsTopToBottom.size() - 1; i >= 0; i--) {
+            zone.pushTop(cardsTopToBottom.get(i));
+        }
+        return zone;
+    }
+
     public void pushTop(Card card) {
         cards.addFirst(Objects.requireNonNull(card, "card"));
     }

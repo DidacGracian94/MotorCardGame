@@ -14,8 +14,13 @@ import com.motorcardgame.app.gamedefinition.instance.domain.GameInstanceReposito
 import com.motorcardgame.app.gamedefinition.version.application.GameDefinitionVersionNotFoundException;
 import com.motorcardgame.app.gamedefinition.version.application.GameDefinitionVersionService;
 import com.motorcardgame.app.gamedefinition.version.domain.GameDefinitionVersion;
+import com.motorcardgame.engine.config.GameSetupParser;
+import com.motorcardgame.engine.config.GameStateSerializer;
 import com.motorcardgame.engine.config.RuleSetParser;
 import com.motorcardgame.engine.exception.InvalidGameDefinitionException;
+import com.motorcardgame.engine.state.GameState;
+import com.motorcardgame.engine.state.Player;
+import com.motorcardgame.engine.state.PlayerId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +32,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class GameInstanceServiceTest {
+
+    private static final List<Player> PLAYERS = List.of(new Player(new PlayerId("alice"), "Alice"));
 
     @Mock
     private GameInstanceRepository repository;
@@ -40,26 +47,37 @@ class GameInstanceServiceTest {
     @Mock
     private RuleSetParser ruleSetParser;
 
+    @Mock
+    private GameSetupParser gameSetupParser;
+
+    @Mock
+    private GameStateSerializer gameStateSerializer;
+
     private GameInstanceService service;
 
     @BeforeEach
     void setUp() {
-        service = new GameInstanceService(repository, gameDefinitionService, gameDefinitionVersionService, ruleSetParser);
+        service = new GameInstanceService(
+                repository, gameDefinitionService, gameDefinitionVersionService,
+                ruleSetParser, gameSetupParser, gameStateSerializer);
     }
 
     @Test
-    void create_savesInstanceWithPlaceholderState_whenVersionExistsAndConfigIsValid() {
+    void create_savesInstanceWithSerializedState_whenVersionExistsAndConfigIsValid() {
         UUID gameDefinitionId = UUID.randomUUID();
-        GameDefinitionVersion version = GameDefinitionVersion.publish(gameDefinitionId, 1, "{\"rules\":[]}");
+        GameDefinitionVersion version = GameDefinitionVersion.publish(gameDefinitionId, 1, "{\"rules\":[],\"zones\":[]}");
+        GameState state = new GameState(PLAYERS);
         when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1)).thenReturn(version);
         when(ruleSetParser.parse(version.config())).thenReturn(List.of());
+        when(gameSetupParser.buildInitialState(version.config(), PLAYERS)).thenReturn(state);
+        when(gameStateSerializer.toJson(state)).thenReturn("{\"players\":[]}");
         when(repository.save(any(GameInstance.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        GameInstance created = service.create(gameDefinitionId, 1);
+        GameInstance created = service.create(gameDefinitionId, 1, PLAYERS);
 
         assertThat(created.gameDefinitionId()).isEqualTo(gameDefinitionId);
         assertThat(created.gameDefinitionVersionId()).isEqualTo(version.id());
-        assertThat(created.state()).isEqualTo("{\"status\":\"NOT_STARTED\"}");
+        assertThat(created.state()).isEqualTo("{\"players\":[]}");
         assertThat(created.endedAt()).isNull();
     }
 
@@ -69,19 +87,33 @@ class GameInstanceServiceTest {
         when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1))
                 .thenThrow(new GameDefinitionVersionNotFoundException(gameDefinitionId, 1));
 
-        assertThatThrownBy(() -> service.create(gameDefinitionId, 1))
+        assertThatThrownBy(() -> service.create(gameDefinitionId, 1, PLAYERS))
                 .isInstanceOf(GameDefinitionVersionNotFoundException.class);
         verifyNoInteractions(repository);
     }
 
     @Test
-    void create_propagatesInvalidGameDefinition_whenConfigIsInvalid() {
+    void create_propagatesInvalidGameDefinition_whenRulesAreInvalid() {
         UUID gameDefinitionId = UUID.randomUUID();
         GameDefinitionVersion version = GameDefinitionVersion.publish(gameDefinitionId, 1, "{}");
         when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1)).thenReturn(version);
         when(ruleSetParser.parse(version.config())).thenThrow(new InvalidGameDefinitionException("boom"));
 
-        assertThatThrownBy(() -> service.create(gameDefinitionId, 1))
+        assertThatThrownBy(() -> service.create(gameDefinitionId, 1, PLAYERS))
+                .isInstanceOf(InvalidGameDefinitionException.class);
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void create_propagatesInvalidGameDefinition_whenZonesAreInvalid() {
+        UUID gameDefinitionId = UUID.randomUUID();
+        GameDefinitionVersion version = GameDefinitionVersion.publish(gameDefinitionId, 1, "{\"rules\":[]}");
+        when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1)).thenReturn(version);
+        when(ruleSetParser.parse(version.config())).thenReturn(List.of());
+        when(gameSetupParser.buildInitialState(version.config(), PLAYERS))
+                .thenThrow(new InvalidGameDefinitionException("boom"));
+
+        assertThatThrownBy(() -> service.create(gameDefinitionId, 1, PLAYERS))
                 .isInstanceOf(InvalidGameDefinitionException.class);
         verifyNoInteractions(repository);
     }

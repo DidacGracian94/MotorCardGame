@@ -79,6 +79,26 @@ class LinearZoneTest {
     }
 
     @Test
+    void ofTopToBottomPreservesGivenOrder() {
+        Card first = new Card(new CardId("c1"), Map.of());
+        Card second = new Card(new CardId("c2"), Map.of());
+        Card third = new Card(new CardId("c3"), Map.of());
+
+        LinearZone zone = LinearZone.ofTopToBottom(List.of(first, second, third));
+
+        assertEquals(List.of(first, second, third), zone.cardsView());
+        assertEquals(first, zone.peekTop());
+        assertEquals(third, zone.peekBottom());
+    }
+
+    @Test
+    void ofTopToBottomOfEmptyListIsEmptyZone() {
+        LinearZone zone = LinearZone.ofTopToBottom(List.of());
+
+        assertTrue(zone.isEmpty());
+    }
+
+    @Test
     void sizeAndIsEmpty() {
         LinearZone zone = new LinearZone();
 

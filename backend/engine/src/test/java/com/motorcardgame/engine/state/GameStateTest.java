@@ -3,11 +3,13 @@ package com.motorcardgame.engine.state;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GameStateTest {
 
@@ -78,5 +80,49 @@ class GameStateTest {
         state.registerPlayerZone(ALICE.id(), "hand", aliceHand);
 
         assertSame(aliceHand, state.zoneOfCurrentPlayer("hand"));
+    }
+
+    @Test
+    void constructorWithIndexStartsAtGivenPlayer() {
+        GameState state = new GameState(List.of(ALICE, BOB), 1);
+
+        assertEquals(BOB, state.currentPlayer());
+        assertEquals(1, state.currentPlayerIndex());
+    }
+
+    @Test
+    void constructorRejectsOutOfRangeIndex() {
+        assertThrows(IndexOutOfBoundsException.class, () -> new GameState(List.of(ALICE, BOB), 2));
+        assertThrows(IndexOutOfBoundsException.class, () -> new GameState(List.of(ALICE, BOB), -1));
+    }
+
+    @Test
+    void sharedZonesReturnsAllRegisteredSharedZones() {
+        GameState state = new GameState(List.of(ALICE));
+        LinearZone pile = new LinearZone();
+        state.registerSharedZone("pile", pile);
+
+        assertEquals(Map.of("pile", pile), state.sharedZones());
+    }
+
+    @Test
+    void perPlayerZonesReturnsAllRegisteredPlayerZones() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+        LinearZone aliceHand = new LinearZone();
+        LinearZone bobHand = new LinearZone();
+        state.registerPlayerZone(ALICE.id(), "hand", aliceHand);
+        state.registerPlayerZone(BOB.id(), "hand", bobHand);
+
+        assertEquals(Map.of("hand", Map.of(ALICE.id(), aliceHand, BOB.id(), bobHand)), state.perPlayerZones());
+    }
+
+    @Test
+    void sharedZonesViewDoesNotExposeMutationOfUnderlyingState() {
+        GameState state = new GameState(List.of(ALICE));
+        state.registerSharedZone("pile", new LinearZone());
+
+        assertTrue(state.sharedZones().containsKey("pile"));
+        assertThrows(UnsupportedOperationException.class,
+                () -> state.sharedZones().put("discard", new LinearZone()));
     }
 }

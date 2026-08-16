@@ -6,6 +6,8 @@ import com.motorcardgame.app.gamedefinition.instance.application.GameInstanceSer
 import com.motorcardgame.app.gamedefinition.instance.domain.GameInstance;
 import com.motorcardgame.app.gamedefinition.instance.web.dto.CreateGameInstanceRequest;
 import com.motorcardgame.app.gamedefinition.instance.web.dto.GameInstanceResponse;
+import com.motorcardgame.engine.state.Player;
+import com.motorcardgame.engine.state.PlayerId;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.ArrayList;
@@ -35,7 +37,10 @@ public class GameInstanceController {
     public ResponseEntity<GameInstanceResponse> create(
             @PathVariable UUID gameDefinitionId, @Valid @RequestBody CreateGameInstanceRequest request)
             throws JsonProcessingException {
-        GameInstance created = gameInstanceService.create(gameDefinitionId, request.versionNumber());
+        List<Player> players = request.players().stream()
+                .map(p -> new Player(new PlayerId(p.id()), p.displayName()))
+                .toList();
+        GameInstance created = gameInstanceService.create(gameDefinitionId, request.versionNumber(), players);
         GameInstanceResponse body = GameInstanceResponse.from(created, objectMapper);
         return ResponseEntity.created(URI.create("/api/instances/" + body.id())).body(body);
     }

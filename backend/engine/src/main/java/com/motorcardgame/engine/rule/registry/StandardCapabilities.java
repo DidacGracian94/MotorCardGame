@@ -70,7 +70,7 @@ public final class StandardCapabilities {
                 ZoneRefs.fromJson(JsonNodes.requiredObject(node, "zone")),
                 readPosition(node),
                 JsonNodes.requiredText(node, "attribute"),
-                readEqualsValue(node)));
+                JsonNodes.scalarValue(node.path("equals"))));
 
         conditionRegistry.register("AND", (node, parser) -> {
             List<Condition> conditions = new ArrayList<>();
@@ -110,19 +110,5 @@ public final class StandardCapabilities {
         } catch (IllegalArgumentException e) {
             throw new InvalidGameDefinitionException("unknown position \"" + positionNode.asText() + "\": " + node, e);
         }
-    }
-
-    private static Object readEqualsValue(JsonNode node) {
-        JsonNode valueNode = node.path("equals");
-        if (valueNode.isTextual()) {
-            return valueNode.asText();
-        }
-        if (valueNode.isBoolean()) {
-            return valueNode.asBoolean();
-        }
-        if (valueNode.isIntegralNumber()) {
-            return valueNode.asInt();
-        }
-        throw new InvalidGameDefinitionException("field \"equals\" must be text, boolean or integer: " + node);
     }
 }
