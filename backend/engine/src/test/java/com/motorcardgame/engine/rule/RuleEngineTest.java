@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -32,7 +33,7 @@ class RuleEngineTest {
         RuleEngine engine = newDrawTopCardEngine();
         Card expectedTopCard = ((LinearZone) state.sharedZone("pile")).peekTop();
 
-        engine.handle(Event.of("TURN_STARTED"), state);
+        assertTrue(engine.handle(Event.of("TURN_STARTED"), state));
 
         assertEquals(2, ((LinearZone) state.sharedZone("pile")).size());
         LinearZone aliceHand = (LinearZone) state.zoneOf(ALICE.id(), "hand");
@@ -46,7 +47,7 @@ class RuleEngineTest {
         GameState state = newStateWithPileOf(0);
         RuleEngine engine = newDrawTopCardEngine();
 
-        engine.handle(Event.of("TURN_STARTED"), state);
+        assertFalse(engine.handle(Event.of("TURN_STARTED"), state));
 
         assertTrue(((LinearZone) state.zoneOf(ALICE.id(), "hand")).isEmpty());
         assertTrue(((LinearZone) state.zoneOf(BOB.id(), "hand")).isEmpty());
@@ -57,7 +58,7 @@ class RuleEngineTest {
         GameState state = newStateWithPileOf(3);
         RuleEngine engine = newDrawTopCardEngine();
 
-        engine.handle(Event.of("OTHER_EVENT"), state);
+        assertFalse(engine.handle(Event.of("OTHER_EVENT"), state));
 
         assertEquals(3, ((LinearZone) state.sharedZone("pile")).size());
         assertTrue(((LinearZone) state.zoneOf(ALICE.id(), "hand")).isEmpty());
@@ -74,7 +75,7 @@ class RuleEngineTest {
                 ctx -> executions[0]++);
         RuleEngine engine = new RuleEngine(List.of(rule));
 
-        engine.handle(Event.of("TICK"), state);
+        assertTrue(engine.handle(Event.of("TICK"), state));
 
         assertEquals(2, executions[0]);
     }

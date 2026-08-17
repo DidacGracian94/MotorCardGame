@@ -2,6 +2,7 @@ package com.motorcardgame.engine.state;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -66,6 +67,27 @@ public final class LinearZone implements Zone {
             throw new NoSuchElementException("Zone is empty");
         }
         return card;
+    }
+
+    public Card findById(CardId id) {
+        for (Card card : cards) {
+            if (card.id().equals(id)) {
+                return card;
+            }
+        }
+        throw new NoSuchElementException("Card not found: " + id);
+    }
+
+    public Card removeById(CardId id) {
+        Iterator<Card> it = cards.iterator();
+        while (it.hasNext()) {
+            Card card = it.next();
+            if (card.id().equals(id)) {
+                it.remove();
+                return card;
+            }
+        }
+        throw new NoSuchElementException("Card not found: " + id);
     }
 
     public int size() {

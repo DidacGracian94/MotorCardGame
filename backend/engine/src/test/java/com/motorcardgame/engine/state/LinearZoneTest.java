@@ -99,6 +99,59 @@ class LinearZoneTest {
     }
 
     @Test
+    void findByIdReturnsCardAnywhereInZoneWithoutRemoving() {
+        LinearZone zone = new LinearZone();
+        Card first = new Card(new CardId("c1"), Map.of());
+        Card second = new Card(new CardId("c2"), Map.of());
+        Card third = new Card(new CardId("c3"), Map.of());
+        zone.pushTop(first);
+        zone.pushTop(second);
+        zone.pushTop(third);
+
+        assertEquals(first, zone.findById(new CardId("c1")));
+        assertEquals(3, zone.size());
+    }
+
+    @Test
+    void findByIdOnMissingCardThrows() {
+        LinearZone zone = new LinearZone();
+
+        assertThrows(NoSuchElementException.class, () -> zone.findById(new CardId("missing")));
+    }
+
+    @Test
+    void removeByIdRemovesAndReturnsCardAnywhereInZone() {
+        LinearZone zone = new LinearZone();
+        Card first = new Card(new CardId("c1"), Map.of());
+        Card second = new Card(new CardId("c2"), Map.of());
+        Card third = new Card(new CardId("c3"), Map.of());
+        zone.pushTop(first);
+        zone.pushTop(second);
+        zone.pushTop(third);
+
+        Card removed = zone.removeById(new CardId("c2"));
+
+        assertEquals(second, removed);
+        assertEquals(2, zone.size());
+        assertEquals(List.of(third, first), zone.cardsView());
+    }
+
+    @Test
+    void removeByIdOnMissingCardThrows() {
+        LinearZone zone = new LinearZone();
+        zone.pushTop(new Card(new CardId("c1"), Map.of()));
+
+        assertThrows(NoSuchElementException.class, () -> zone.removeById(new CardId("missing")));
+    }
+
+    @Test
+    void removeByIdOnEmptyZoneThrows() {
+        LinearZone zone = new LinearZone();
+
+        assertThrows(NoSuchElementException.class, () -> zone.removeById(new CardId("c1")));
+    }
+
+    @Test
     void sizeAndIsEmpty() {
         LinearZone zone = new LinearZone();
 

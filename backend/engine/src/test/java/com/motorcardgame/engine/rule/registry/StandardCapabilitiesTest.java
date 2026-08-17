@@ -16,11 +16,13 @@ class StandardCapabilitiesTest {
 
         assertTrue(actionRegistry.contains("DRAW_CARDS"));
         assertTrue(actionRegistry.contains("NEXT_PLAYER"));
+        assertTrue(actionRegistry.contains("MOVE_CARD"));
         assertTrue(actionRegistry.contains("SEQUENCE"));
         assertTrue(actionRegistry.contains("REPEAT"));
 
         assertTrue(conditionRegistry.contains("ZONE_IS_EMPTY"));
         assertTrue(conditionRegistry.contains("CARD_ATTRIBUTE_EQUALS"));
+        assertTrue(conditionRegistry.contains("CARD_ATTRIBUTE_MATCHES_ZONE"));
         assertTrue(conditionRegistry.contains("AND"));
         assertTrue(conditionRegistry.contains("OR"));
         assertTrue(conditionRegistry.contains("NOT"));

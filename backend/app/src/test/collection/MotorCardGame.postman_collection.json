@@ -9,7 +9,9 @@
     { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "gameDefinitionId", "value": "" },
     { "key": "versionNumber", "value": "" },
-    { "key": "gameInstanceId", "value": "" }
+    { "key": "gameInstanceId", "value": "" },
+    { "key": "aliceCardId", "value": "" },
+    { "key": "aliceSecondCardId", "value": "" }
   ],
   "item": [
     {
@@ -152,7 +154,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"config\": {\n    \"zones\": [\n      { \"name\": \"deck\", \"ownership\": \"SHARED\", \"shuffle\": true },\n      { \"name\": \"discard\", \"ownership\": \"SHARED\" },\n      { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n    ],\n    \"cards\": [\n      { \"id\": \"red\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"RED\" } },\n      { \"id\": \"blue\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"BLUE\" } }\n    ],\n    \"rules\": [\n      {\n        \"event\": \"GAME_STARTED\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"ALL_PLAYERS\" },\n        \"action\": {\n          \"type\": \"REPEAT\",\n          \"times\": 7,\n          \"action\": {\n            \"type\": \"DRAW_CARDS\",\n            \"count\": 1,\n            \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n            \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n          }\n        }\n      },\n      {\n        \"event\": \"PLAYER_REQUESTED_DRAW\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"DRAW_CARDS\",\n          \"count\": 1,\n          \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n          \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n        }\n      }\n    ]\n  }\n}"
+              "raw": "{\n  \"config\": {\n    \"zones\": [\n      { \"name\": \"deck\", \"ownership\": \"SHARED\", \"shuffle\": false },\n      { \"name\": \"discard\", \"ownership\": \"SHARED\" },\n      { \"name\": \"graveyard\", \"ownership\": \"SHARED\" },\n      { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n    ],\n    \"cards\": [\n      { \"id\": \"red\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"RED\" } },\n      { \"id\": \"blue\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"BLUE\" } },\n      { \"id\": \"discard-seed\", \"zone\": \"discard\", \"count\": 1, \"attributes\": { \"color\": \"RED\" } },\n      { \"id\": \"graveyard-seed\", \"zone\": \"graveyard\", \"count\": 1, \"attributes\": { \"color\": \"BLUE\" } }\n    ],\n    \"rules\": [\n      {\n        \"event\": \"GAME_STARTED\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"ALL_PLAYERS\" },\n        \"action\": {\n          \"type\": \"REPEAT\",\n          \"times\": 7,\n          \"action\": {\n            \"type\": \"DRAW_CARDS\",\n            \"count\": 1,\n            \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n            \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n          }\n        }\n      },\n      {\n        \"event\": \"PLAYER_REQUESTED_DRAW\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"DRAW_CARDS\",\n          \"count\": 1,\n          \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n          \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n        }\n      },\n      {\n        \"event\": \"CARD_PLAYED\",\n        \"condition\": {\n          \"type\": \"CARD_ATTRIBUTE_MATCHES_ZONE\",\n          \"cardZone\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"attribute\": \"color\",\n          \"zone\": { \"name\": \"discard\", \"ownership\": \"SHARED\" },\n          \"position\": \"TOP\"\n        },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"MOVE_CARD\",\n          \"from\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"to\": { \"name\": \"discard\", \"ownership\": \"SHARED\" }\n        }\n      },\n      {\n        \"event\": \"CARD_DISCARDED\",\n        \"condition\": {\n          \"type\": \"CARD_ATTRIBUTE_MATCHES_ZONE\",\n          \"cardZone\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"attribute\": \"color\",\n          \"zone\": { \"name\": \"graveyard\", \"ownership\": \"SHARED\" },\n          \"position\": \"TOP\"\n        },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"MOVE_CARD\",\n          \"from\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"to\": { \"name\": \"graveyard\", \"ownership\": \"SHARED\" }\n        }\n      }\n    ]\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/versions",
@@ -235,7 +237,9 @@
                   "pm.test('status is 201', () => pm.response.to.have.status(201));",
                   "const body = pm.response.json();",
                   "pm.collectionVariables.set('gameInstanceId', body.id);",
-                  "pm.test('deals a hand to each player', () => pm.expect(body.state.perPlayerZones.hand.alice.length).to.eql(7));"
+                  "pm.test('deals a hand to each player', () => pm.expect(body.state.perPlayerZones.hand.alice.length).to.eql(7));",
+                  "pm.collectionVariables.set('aliceCardId', body.state.perPlayerZones.hand.alice[0].id);",
+                  "pm.collectionVariables.set('aliceSecondCardId', body.state.perPlayerZones.hand.alice[1].id);"
                 ]
               }
             }
@@ -303,6 +307,59 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "instances", "{{gameInstanceId}}", "actions"]
             }
+          }
+        },
+        {
+          "name": "Apply player action - CARD_PLAYED (legal)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('card moved to discard', () => pm.expect(body.state.sharedZones.discard[0].id).to.eql(pm.collectionVariables.get('aliceCardId')));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"alice\",\n  \"eventType\": \"CARD_PLAYED\",\n  \"payload\": { \"cardId\": \"{{aliceCardId}}\" }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/instances/{{gameInstanceId}}/actions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "instances", "{{gameInstanceId}}", "actions"]
+            },
+            "description": "El mazo no se baraja (shuffle:false) y tiene 10 cartas RED antes que las BLUE, así que las 7 cartas de Alice son todas RED — encajan por color con la carta RED ya puesta en discard, así que la jugada es legal (200)."
+          }
+        },
+        {
+          "name": "[Error] Apply player action - 422 jugada ilegal",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 422', () => pm.response.to.have.status(422));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"alice\",\n  \"eventType\": \"CARD_DISCARDED\",\n  \"payload\": { \"cardId\": \"{{aliceSecondCardId}}\" }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/instances/{{gameInstanceId}}/actions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "instances", "{{gameInstanceId}}", "actions"]
+            },
+            "description": "CARD_DISCARDED exige que el color coincida con el tope de graveyard (BLUE), pero la carta de Alice es RED (igual que todo su reparto) — ninguna regla se dispara, 422. Usa una carta distinta a la de 'Apply player action - CARD_PLAYED (legal)' para no depender del orden de ejecución."
           }
         },
         {

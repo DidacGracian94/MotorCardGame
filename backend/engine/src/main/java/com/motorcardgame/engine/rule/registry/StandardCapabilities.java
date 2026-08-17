@@ -7,11 +7,13 @@ import com.motorcardgame.engine.exception.InvalidGameDefinitionException;
 import com.motorcardgame.engine.rule.Action;
 import com.motorcardgame.engine.rule.Condition;
 import com.motorcardgame.engine.rule.action.DrawCardsAction;
+import com.motorcardgame.engine.rule.action.MoveCardAction;
 import com.motorcardgame.engine.rule.action.NextPlayerAction;
 import com.motorcardgame.engine.rule.action.RepeatAction;
 import com.motorcardgame.engine.rule.action.SequenceAction;
 import com.motorcardgame.engine.rule.condition.AndCondition;
 import com.motorcardgame.engine.rule.condition.CardAttributeEqualsCondition;
+import com.motorcardgame.engine.rule.condition.CardAttributeMatchesZoneCondition;
 import com.motorcardgame.engine.rule.condition.NotCondition;
 import com.motorcardgame.engine.rule.condition.OrCondition;
 import com.motorcardgame.engine.rule.condition.Position;
@@ -49,6 +51,10 @@ public final class StandardCapabilities {
 
         actionRegistry.register("NEXT_PLAYER", (node, parser) -> new NextPlayerAction());
 
+        actionRegistry.register("MOVE_CARD", (node, parser) -> new MoveCardAction(
+                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "from")),
+                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "to"))));
+
         actionRegistry.register("SEQUENCE", (node, parser) -> {
             List<Action> actions = new ArrayList<>();
             for (JsonNode child : JsonNodes.requiredArray(node, "actions")) {
@@ -71,6 +77,12 @@ public final class StandardCapabilities {
                 readPosition(node),
                 JsonNodes.requiredText(node, "attribute"),
                 JsonNodes.scalarValue(node.path("equals"))));
+
+        conditionRegistry.register("CARD_ATTRIBUTE_MATCHES_ZONE", (node, parser) -> new CardAttributeMatchesZoneCondition(
+                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "cardZone")),
+                JsonNodes.requiredText(node, "attribute"),
+                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "zone")),
+                readPosition(node)));
 
         conditionRegistry.register("AND", (node, parser) -> {
             List<Condition> conditions = new ArrayList<>();

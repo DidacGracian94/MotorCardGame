@@ -85,7 +85,10 @@ public class GameInstanceService {
             throw new NotPlayersTurnException(instanceId, actingPlayerId, state.currentPlayer().id());
         }
 
-        new RuleEngine(rules).handle(new Event(eventType, payload), state);
+        boolean matched = new RuleEngine(rules).handle(new Event(eventType, payload), state);
+        if (!matched) {
+            throw new PlayerActionRejectedException(instanceId, actingPlayerId, eventType);
+        }
 
         return repository.save(instance.withState(gameStateSerializer.toJson(state)));
     }

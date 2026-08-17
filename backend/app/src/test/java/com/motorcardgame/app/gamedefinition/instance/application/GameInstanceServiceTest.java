@@ -203,6 +203,22 @@ class GameInstanceServiceTest {
     }
 
     @Test
+    void applyAction_throwsPlayerActionRejected_whenNoRuleMatchesEvent() {
+        PlayerId alice = new PlayerId("alice");
+        GameState state = new GameState(List.of(new Player(alice, "Alice")));
+        GameInstance instance = GameInstance.create(UUID.randomUUID(), UUID.randomUUID(), "{\"before\":true}");
+        GameDefinitionVersion version = GameDefinitionVersion.publish(instance.gameDefinitionId(), 1, "{\"rules\":[]}");
+        when(repository.findById(instance.id())).thenReturn(Optional.of(instance));
+        when(gameDefinitionVersionService.getById(instance.gameDefinitionVersionId())).thenReturn(version);
+        when(ruleSetParser.parse(version.config())).thenReturn(List.of());
+        when(gameStateSerializer.fromJson(instance.state())).thenReturn(state);
+
+        assertThatThrownBy(() -> service.applyAction(instance.id(), alice, "CARD_PLAYED", Map.of()))
+                .isInstanceOf(PlayerActionRejectedException.class);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
     void applyAction_throwsInstanceNotFound_whenInstanceMissing() {
         UUID missingId = UUID.randomUUID();
         when(repository.findById(missingId)).thenReturn(Optional.empty());

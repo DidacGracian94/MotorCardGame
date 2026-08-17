@@ -20,7 +20,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Prueba de punta a punta: JSON de configuración → {@link RuleSetParser} → {@link Rule} reales →
@@ -199,6 +201,76 @@ class RuleSetParserTest {
         engine.handle(Event.of("TURN_STARTED"), state);
 
         assertEquals(2, ((LinearZone) state.zoneOf(ALICE.id(), "hand")).size());
+    }
+
+    @Test
+    void moveCardMovesNamedCardWhenAttributeMatchesZone() {
+        GameState state = newStateWithPile(1, Map.of("color", "RED"));
+        LinearZone aliceHand = (LinearZone) state.zoneOf(ALICE.id(), "hand");
+        aliceHand.pushTop(new Card(new CardId("played"), Map.of("color", "RED")));
+        RuleEngine engine = engineFor("""
+                {
+                  "rules": [
+                    {
+                      "event": "CARD_PLAYED",
+                      "condition": {
+                        "type": "CARD_ATTRIBUTE_MATCHES_ZONE",
+                        "cardZone": { "name": "hand", "ownership": "PER_PLAYER" },
+                        "attribute": "color",
+                        "zone": { "name": "pile", "ownership": "SHARED" },
+                        "position": "TOP"
+                      },
+                      "target": { "type": "CURRENT_PLAYER" },
+                      "action": {
+                        "type": "MOVE_CARD",
+                        "from": { "name": "hand", "ownership": "PER_PLAYER" },
+                        "to": { "name": "pile", "ownership": "SHARED" }
+                      }
+                    }
+                  ]
+                }
+                """);
+
+        boolean matched = engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "played")), state);
+
+        assertTrue(matched);
+        assertEquals(0, aliceHand.size());
+        assertEquals("played", ((LinearZone) state.sharedZone("pile")).peekTop().id().value());
+    }
+
+    @Test
+    void moveCardDoesNothingWhenAttributeDoesNotMatchZone() {
+        GameState state = newStateWithPile(1, Map.of("color", "BLUE"));
+        LinearZone aliceHand = (LinearZone) state.zoneOf(ALICE.id(), "hand");
+        aliceHand.pushTop(new Card(new CardId("played"), Map.of("color", "RED")));
+        RuleEngine engine = engineFor("""
+                {
+                  "rules": [
+                    {
+                      "event": "CARD_PLAYED",
+                      "condition": {
+                        "type": "CARD_ATTRIBUTE_MATCHES_ZONE",
+                        "cardZone": { "name": "hand", "ownership": "PER_PLAYER" },
+                        "attribute": "color",
+                        "zone": { "name": "pile", "ownership": "SHARED" },
+                        "position": "TOP"
+                      },
+                      "target": { "type": "CURRENT_PLAYER" },
+                      "action": {
+                        "type": "MOVE_CARD",
+                        "from": { "name": "hand", "ownership": "PER_PLAYER" },
+                        "to": { "name": "pile", "ownership": "SHARED" }
+                      }
+                    }
+                  ]
+                }
+                """);
+
+        boolean matched = engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "played")), state);
+
+        assertFalse(matched);
+        assertEquals(1, aliceHand.size());
+        assertEquals("c1", ((LinearZone) state.sharedZone("pile")).peekTop().id().value());
     }
 
     @Test
