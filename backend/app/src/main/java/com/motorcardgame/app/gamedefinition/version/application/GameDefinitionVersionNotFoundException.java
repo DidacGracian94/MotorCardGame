@@ -8,4 +8,8 @@ public class GameDefinitionVersionNotFoundException extends RuntimeException {
         super("GameDefinitionVersion no encontrada: gameDefinitionId=" + gameDefinitionId
                 + ", versionNumber=" + versionNumber);
     }
+
+    public GameDefinitionVersionNotFoundException(UUID versionId) {
+        super("GameDefinitionVersion no encontrada: id=" + versionId);
+    }
 }

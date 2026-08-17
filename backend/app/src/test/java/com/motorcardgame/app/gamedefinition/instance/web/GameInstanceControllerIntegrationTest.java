@@ -103,23 +103,6 @@ class GameInstanceControllerIntegrationTest {
     }
 
     @Test
-    void create_returnsBadRequest_whenConfigReferencesUnknownCapability() throws Exception {
-        UUID gameDefinitionId = createGameDefinition("uno-instancias-3");
-        publishVersion(gameDefinitionId, Map.of(
-                "zones", List.of(),
-                "rules", List.of(Map.of(
-                        "event", "TURN_STARTED",
-                        "condition", Map.of("type", "UNKNOWN_CONDITION"),
-                        "target", Map.of("type", "CURRENT_PLAYER"),
-                        "action", Map.of("type", "NEXT_PLAYER")))));
-
-        mockMvc.perform(post("/api/game-definitions/{id}/instances", gameDefinitionId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("versionNumber", 1, "players", ONE_PLAYER))))
-                .andExpect(status().isBadRequest());
-    }
-
-    @Test
     void create_returnsBadRequest_whenNoPlayersProvided() throws Exception {
         UUID gameDefinitionId = createGameDefinition("uno-instancias-6");
         publishVersion(gameDefinitionId, Map.of("rules", List.of(), "zones", List.of()));

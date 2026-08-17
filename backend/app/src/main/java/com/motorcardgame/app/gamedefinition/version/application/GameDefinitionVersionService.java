@@ -3,6 +3,10 @@ package com.motorcardgame.app.gamedefinition.version.application;
 import com.motorcardgame.app.gamedefinition.application.GameDefinitionService;
 import com.motorcardgame.app.gamedefinition.version.domain.GameDefinitionVersion;
 import com.motorcardgame.app.gamedefinition.version.domain.GameDefinitionVersionRepository;
+import com.motorcardgame.engine.config.GameSetupParser;
+import com.motorcardgame.engine.config.RuleSetParser;
+import com.motorcardgame.engine.state.Player;
+import com.motorcardgame.engine.state.PlayerId;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -16,22 +20,38 @@ public class GameDefinitionVersionService {
 
     private static final int MAX_PUBLISH_ATTEMPTS = 3;
 
+    /**
+     * Jugador sintético usado solo para ejercitar la construcción del estado inicial durante la
+     * validación de un config al publicar — nunca se persiste ni sale de este método. Con un único
+     * jugador se recorren también las zonas PER_PLAYER (con cero jugadores ese camino no se
+     * probaría en absoluto).
+     */
+    private static final List<Player> VALIDATION_PLAYERS = List.of(new Player(new PlayerId("validation"), "Validation"));
+
     private final GameDefinitionVersionRepository repository;
     private final GameDefinitionService gameDefinitionService;
+    private final RuleSetParser ruleSetParser;
+    private final GameSetupParser gameSetupParser;
     private final TransactionTemplate requiresNewTransactionTemplate;
 
     public GameDefinitionVersionService(
             GameDefinitionVersionRepository repository,
             GameDefinitionService gameDefinitionService,
+            RuleSetParser ruleSetParser,
+            GameSetupParser gameSetupParser,
             PlatformTransactionManager transactionManager) {
         this.repository = repository;
         this.gameDefinitionService = gameDefinitionService;
+        this.ruleSetParser = ruleSetParser;
+        this.gameSetupParser = gameSetupParser;
         this.requiresNewTransactionTemplate = new TransactionTemplate(transactionManager);
         this.requiresNewTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     public GameDefinitionVersion publish(UUID gameDefinitionId, String config) {
         gameDefinitionService.getById(gameDefinitionId);
+        ruleSetParser.parse(config);
+        gameSetupParser.buildInitialState(config, VALIDATION_PLAYERS);
 
         for (int attempt = 1; attempt <= MAX_PUBLISH_ATTEMPTS; attempt++) {
             try {
@@ -62,5 +82,10 @@ public class GameDefinitionVersionService {
         return repository
                 .findByGameDefinitionIdAndVersionNumber(gameDefinitionId, versionNumber)
                 .orElseThrow(() -> new GameDefinitionVersionNotFoundException(gameDefinitionId, versionNumber));
+    }
+
+    public GameDefinitionVersion getById(UUID versionId) {
+        return repository.findById(versionId)
+                .orElseThrow(() -> new GameDefinitionVersionNotFoundException(versionId));
     }
 }

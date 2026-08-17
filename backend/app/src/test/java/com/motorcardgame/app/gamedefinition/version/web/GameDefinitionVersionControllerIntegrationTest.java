@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.motorcardgame.app.gamedefinition.web.dto.CreateGameDefinitionRequest;
 import com.motorcardgame.app.gamedefinition.web.dto.GameDefinitionResponse;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -54,7 +55,8 @@ class GameDefinitionVersionControllerIntegrationTest {
 
         mockMvc.perform(post("/api/game-definitions/{id}/versions", gameDefinitionId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(Map.of("config", Map.of("rules", Map.of())))))
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("config", Map.of("rules", List.of(), "zones", List.of())))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.versionNumber").value(1))
                 .andExpect(jsonPath("$.gameDefinitionId").value(gameDefinitionId.toString()));
@@ -63,7 +65,8 @@ class GameDefinitionVersionControllerIntegrationTest {
     @Test
     void publish_incrementsVersionNumber_onSecondPublish() throws Exception {
         UUID gameDefinitionId = createGameDefinition("juego-version-2");
-        String requestBody = objectMapper.writeValueAsString(Map.of("config", Map.of("rules", Map.of())));
+        String requestBody = objectMapper.writeValueAsString(
+                Map.of("config", Map.of("rules", List.of(), "zones", List.of())));
 
         mockMvc.perform(post("/api/game-definitions/{id}/versions", gameDefinitionId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -80,6 +83,23 @@ class GameDefinitionVersionControllerIntegrationTest {
         mockMvc.perform(get("/api/game-definitions/{id}/versions", gameDefinitionId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2));
+    }
+
+    @Test
+    void publish_returnsBadRequest_whenConfigReferencesUnknownCapability() throws Exception {
+        UUID gameDefinitionId = createGameDefinition("juego-version-invalida");
+        Map<String, Object> config = Map.of(
+                "zones", List.of(),
+                "rules", List.of(Map.of(
+                        "event", "TURN_STARTED",
+                        "condition", Map.of("type", "UNKNOWN_CONDITION"),
+                        "target", Map.of("type", "CURRENT_PLAYER"),
+                        "action", Map.of("type", "NEXT_PLAYER"))));
+
+        mockMvc.perform(post("/api/game-definitions/{id}/versions", gameDefinitionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of("config", config))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

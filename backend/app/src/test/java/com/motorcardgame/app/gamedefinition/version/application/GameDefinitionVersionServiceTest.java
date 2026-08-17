@@ -3,7 +3,9 @@ package com.motorcardgame.app.gamedefinition.version.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +15,9 @@ import com.motorcardgame.app.gamedefinition.application.GameDefinitionService;
 import com.motorcardgame.app.gamedefinition.domain.GameDefinition;
 import com.motorcardgame.app.gamedefinition.version.domain.GameDefinitionVersion;
 import com.motorcardgame.app.gamedefinition.version.domain.GameDefinitionVersionRepository;
+import com.motorcardgame.engine.config.GameSetupParser;
+import com.motorcardgame.engine.config.RuleSetParser;
+import com.motorcardgame.engine.exception.InvalidGameDefinitionException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,11 +42,18 @@ class GameDefinitionVersionServiceTest {
     @Mock
     private GameDefinitionService gameDefinitionService;
 
+    @Mock
+    private RuleSetParser ruleSetParser;
+
+    @Mock
+    private GameSetupParser gameSetupParser;
+
     private GameDefinitionVersionService service;
 
     @BeforeEach
     void setUp() {
-        service = new GameDefinitionVersionService(repository, gameDefinitionService, new NoOpTransactionManager());
+        service = new GameDefinitionVersionService(
+                repository, gameDefinitionService, ruleSetParser, gameSetupParser, new NoOpTransactionManager());
     }
 
     @Test
@@ -114,6 +126,31 @@ class GameDefinitionVersionServiceTest {
     }
 
     @Test
+    void publish_throwsInvalidGameDefinition_whenRulesAreInvalid() {
+        UUID gameDefinitionId = UUID.randomUUID();
+        when(gameDefinitionService.getById(gameDefinitionId))
+                .thenReturn(GameDefinition.create(UUID.randomUUID(), "Mi Juego", "mi-juego"));
+        when(ruleSetParser.parse("{}")).thenThrow(new InvalidGameDefinitionException("boom"));
+
+        assertThatThrownBy(() -> service.publish(gameDefinitionId, "{}"))
+                .isInstanceOf(InvalidGameDefinitionException.class);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void publish_throwsInvalidGameDefinition_whenZonesAreInvalid() {
+        UUID gameDefinitionId = UUID.randomUUID();
+        when(gameDefinitionService.getById(gameDefinitionId))
+                .thenReturn(GameDefinition.create(UUID.randomUUID(), "Mi Juego", "mi-juego"));
+        when(gameSetupParser.buildInitialState(eq("{}"), any()))
+                .thenThrow(new InvalidGameDefinitionException("boom"));
+
+        assertThatThrownBy(() -> service.publish(gameDefinitionId, "{}"))
+                .isInstanceOf(InvalidGameDefinitionException.class);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
     void listByGameDefinition_returnsVersions_whenParentExists() {
         UUID gameDefinitionId = UUID.randomUUID();
         GameDefinitionVersion version = GameDefinitionVersion.publish(gameDefinitionId, 1, "{}");
@@ -130,6 +167,24 @@ class GameDefinitionVersionServiceTest {
         when(repository.findByGameDefinitionIdAndVersionNumber(gameDefinitionId, 1)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getByVersionNumber(gameDefinitionId, 1))
+                .isInstanceOf(GameDefinitionVersionNotFoundException.class);
+    }
+
+    @Test
+    void getById_returnsVersion_whenExists() {
+        UUID gameDefinitionId = UUID.randomUUID();
+        GameDefinitionVersion version = GameDefinitionVersion.publish(gameDefinitionId, 1, "{}");
+        when(repository.findById(version.id())).thenReturn(Optional.of(version));
+
+        assertThat(service.getById(version.id())).isEqualTo(version);
+    }
+
+    @Test
+    void getById_throwsNotFound_whenMissing() {
+        UUID versionId = UUID.randomUUID();
+        when(repository.findById(versionId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getById(versionId))
                 .isInstanceOf(GameDefinitionVersionNotFoundException.class);
     }
 

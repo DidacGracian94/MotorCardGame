@@ -30,6 +30,11 @@ class GameDefinitionVersionRepositoryAdapter implements GameDefinitionVersionRep
     }
 
     @Override
+    public Optional<GameDefinitionVersion> findById(UUID id) {
+        return springDataRepository.findById(id).map(GameDefinitionVersionRepositoryAdapter::toDomain);
+    }
+
+    @Override
     public Optional<GameDefinitionVersion> findByGameDefinitionIdAndVersionNumber(
             UUID gameDefinitionId, int versionNumber) {
         return springDataRepository

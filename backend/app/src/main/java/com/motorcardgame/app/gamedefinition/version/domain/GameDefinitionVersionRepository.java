@@ -10,6 +10,8 @@ public interface GameDefinitionVersionRepository {
 
     List<GameDefinitionVersion> findByGameDefinitionId(UUID gameDefinitionId);
 
+    Optional<GameDefinitionVersion> findById(UUID id);
+
     Optional<GameDefinitionVersion> findByGameDefinitionIdAndVersionNumber(UUID gameDefinitionId, int versionNumber);
 
     int countByGameDefinitionId(UUID gameDefinitionId);
