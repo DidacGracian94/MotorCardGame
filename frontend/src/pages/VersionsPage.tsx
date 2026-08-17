@@ -1,20 +1,23 @@
-import { useState } from 'react'
 import { useGameDefinitions, useGameDefinitionVersions } from '@/hooks/useGameDefinitions'
-import PublishVersionModal from '@/components/PublishVersionModal'
+import { useTranslation } from '@/i18n/LanguageContext'
 import VersionsTable from '@/components/VersionsTable'
 
 interface Props {
   gameDefinitionId: string
   onBack: () => void
+  onNewVersion: () => void
+  onEditAsNewVersion: (versionNumber: number) => void
 }
 
 export default function VersionsPage({
   gameDefinitionId,
   onBack,
+  onNewVersion,
+  onEditAsNewVersion,
 }: Props) {
-  const [showPublishModal, setShowPublishModal] = useState(false)
   const { data: definitions } = useGameDefinitions()
   const { data: versions, isLoading } = useGameDefinitionVersions(gameDefinitionId)
+  const { t } = useTranslation()
 
   const definition = definitions?.find((d) => d.id === gameDefinitionId)
 
@@ -24,41 +27,35 @@ export default function VersionsPage({
         onClick={onBack}
         className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-700 font-medium"
       >
-        ← Back to Definitions
+        {t('common.backToDefinitions')}
       </button>
 
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Versions</h1>
+          <h1 className="text-3xl font-bold text-slate-900">{t('versions.title')}</h1>
           {definition && (
             <p className="text-slate-600 mt-1">{definition.name}</p>
           )}
         </div>
         <button
-          onClick={() => setShowPublishModal(true)}
+          onClick={onNewVersion}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          Publish Version
+          {t('versions.newVersionButton')}
         </button>
       </div>
 
       {isLoading ? (
         <div className="text-center py-12">
-          <p className="text-slate-600">Loading versions...</p>
+          <p className="text-slate-600">{t('versions.loading')}</p>
         </div>
       ) : !versions || versions.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg">
-          <p className="text-slate-600">No versions yet. Publish one to start!</p>
+          <p className="text-slate-600">{t('versions.empty')}</p>
         </div>
       ) : (
-        <VersionsTable versions={versions} />
+        <VersionsTable versions={versions} onEditAsNewVersion={onEditAsNewVersion} />
       )}
-
-      <PublishVersionModal
-        gameDefinitionId={gameDefinitionId}
-        open={showPublishModal}
-        onOpenChange={setShowPublishModal}
-      />
     </div>
   )
 }

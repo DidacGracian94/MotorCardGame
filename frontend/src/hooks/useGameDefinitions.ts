@@ -47,6 +47,17 @@ export function useGameDefinitionVersions(gameDefinitionId: string) {
   })
 }
 
+export function useGameDefinitionVersion(
+  gameDefinitionId: string,
+  versionNumber: number | undefined
+) {
+  return useQuery({
+    queryKey: [...GAME_DEFINITION_VERSIONS_KEY(gameDefinitionId), versionNumber],
+    queryFn: () => api.gameDefinitions.versions.get(gameDefinitionId, versionNumber!),
+    enabled: versionNumber != null,
+  })
+}
+
 export function usePublishVersion() {
   const queryClient = useQueryClient()
   return useMutation({

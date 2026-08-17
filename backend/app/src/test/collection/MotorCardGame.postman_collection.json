@@ -466,6 +466,35 @@
           }
         }
       ]
+    },
+    {
+      "name": "Capabilities",
+      "item": [
+        {
+          "name": "Get capabilities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('has actions, conditions and targets', () => {",
+                  "  pm.expect(body.actions).to.be.an('array');",
+                  "  pm.expect(body.conditions).to.be.an('array');",
+                  "  pm.expect(body.targets).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/capabilities", "host": ["{{baseUrl}}"], "path": ["api", "capabilities"] }
+          }
+        }
+      ]
     }
   ]
 }

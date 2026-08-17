@@ -1,15 +1,11 @@
+import { useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { GameDefinitionDto } from '@/api/client'
 import { useRenameGameDefinition } from '@/hooks/useGameDefinitions'
+import { useTranslation } from '@/i18n/LanguageContext'
 import Dialog from '@/components/ui/Dialog'
-
-const schema = z.object({
-  name: z.string().min(1, 'Name is required').max(120),
-})
-
-type FormData = z.infer<typeof schema>
 
 interface Props {
   definition: GameDefinitionDto
@@ -22,6 +18,18 @@ export default function RenameDefinitionModal({
   open,
   onOpenChange,
 }: Props) {
+  const { t } = useTranslation()
+
+  const schema = useMemo(
+    () =>
+      z.object({
+        name: z.string().min(1, t('common.errors.nameRequired')).max(120),
+      }),
+    [t]
+  )
+
+  type FormData = z.infer<typeof schema>
+
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -40,11 +48,11 @@ export default function RenameDefinitionModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title="Rename Game Definition">
+    <Dialog open={open} onOpenChange={onOpenChange} title={t('renameDefinition.title')}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-slate-900 mb-1">
-            Name
+            {t('common.name')}
           </label>
           <input
             {...register('name')}
@@ -66,14 +74,14 @@ export default function RenameDefinitionModal({
             onClick={() => onOpenChange(false)}
             className="px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             type="submit"
             disabled={renameMutation.isPending}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {renameMutation.isPending ? 'Updating...' : 'Update'}
+            {renameMutation.isPending ? t('common.updating') : t('common.update')}
           </button>
         </div>
       </form>

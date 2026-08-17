@@ -114,6 +114,47 @@ Formulario `WHEN / IF / THEN` encadenado que lee su metadata desde `/api/capabil
 Más simple de construir y validar para el MVP; el canvas de nodos queda como evolución posterior si
 hace falta.
 
+## Internacionalización (i18n) del frontend — decisión tomada
+
+Todo texto visible en `frontend` (etiquetas, botones, cabeceras, placeholders, mensajes de
+validación, estados vacíos/loading, errores propios del cliente) **tiene que pasar por el sistema
+de traducción**, nunca texto literal en JSX. Objetivo: español e inglés ya soportados, y que añadir
+un idioma nuevo en el futuro sea trivial (un objeto más, cero cambios en componentes).
+
+Piezas (deliberadamente ligeras — sin `react-i18next` ni librerías externas, coherente con "sin
+design system pesado" del stack):
+
+- `frontend/src/i18n/translations.ts`: un `Record<Language, Record<string, string>>` con claves
+  planas `"namespace.clave"` (p.ej. `"editor.addRule"`), un objeto por idioma (`en`, `es`). Añadir
+  un idioma = añadir una entrada a `Language` + un objeto nuevo con las mismas claves.
+- `frontend/src/i18n/LanguageContext.tsx`: `LanguageProvider` (envuelve `<App/>` en `main.tsx`,
+  persiste el idioma en `localStorage`) + hook `useTranslation()` que expone `{ language,
+  setLanguage, t }`. `t(key, vars?)` soporta interpolación `{{var}}`.
+- `frontend/src/components/LanguageSwitcher.tsx`: selector fijo arriba a la derecha (`fixed top-4
+  right-4`), montado una vez en `App.tsx` para que esté visible en todas las páginas sin repetirlo
+  por página.
+
+Regla práctica: cualquier componente nuevo con texto visible llama a `const { t } = useTranslation()`
+y usa `t('namespace.clave')` — nunca texto en duro. Los mensajes de validación de formularios (Zod)
+también pasan por `t(...)`: el `schema` se construye con `useMemo(() => z.object({...}), [t])` dentro
+del componente en vez de a nivel de módulo, para que cambie con el idioma activo.
+
+Identificadores técnicos que viajan tal cual al motor/backend (nombres de capacidad como
+`DRAW_CARDS`, nombres de campo del descriptor como `from`/`zone`/`count`, valores de enum como
+`SHARED`/`PER_PLAYER`/`TOP`/`BOTTOM`) **sí se muestran con una etiqueta amigable**, pero nunca se
+traduce el valor que viaja en el JSON — solo el texto en pantalla. Para esto, `useTranslation()`
+expone `tf(key, fallback, vars?)` además de `t`: igual que `t`, pero si la clave no existe en
+ningún idioma devuelve `fallback` (el propio identificador técnico) en vez de la clave sin resolver.
+Las entradas viven en `translations.ts` bajo los prefijos `capability.*`, `field.*` y `enum.*`
+(p.ej. `capability.DRAW_CARDS`, `field.zone`, `enum.SHARED`). Esto es lo que hace que una capacidad
+nueva añadida al motor sin tocar el frontend siga siendo usable desde el editor — se ve con su
+nombre técnico hasta que alguien le añade una traducción amigable, nunca rota. Nombres que el propio
+usuario escribe (nombre de una zona, id de una carta, nombre de un evento) no pasan por aquí — son
+texto libre, no vocabulario del motor.
+
+Fuera de alcance deliberado: mensajes de error que vienen del backend (`error.message` de una
+respuesta HTTP) — no se traducen desde el cliente, quedan tal cual los devuelve `app`.
+
 ## Desarrollo con Maven
 
 Comandos comunes desde la raíz del proyecto:
@@ -154,6 +195,8 @@ puede requerir bump de versión (patch/minor/major según compatibilidad).
 - ¿Se ha añadido o cambiado un endpoint? Debe reflejarse también en la colección de Postman
   (`backend/app/src/test/collection/MotorCardGame.postman_collection.json`) — si no, queda
   desactualizada y deja de servir para probar la API manualmente.
+- ¿Hay texto de UI en duro en algún componente de `frontend` en vez de pasar por `t('...')` de
+  `useTranslation()`? No se debe — ver sección "Internacionalización (i18n) del frontend".
 
 ## Estado actual
 

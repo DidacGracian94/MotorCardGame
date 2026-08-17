@@ -1,8 +1,12 @@
 package com.motorcardgame.engine.rule.registry;
 
 import com.motorcardgame.engine.rule.ActionFactory;
+import com.motorcardgame.engine.rule.registry.describe.CapabilityDescriptor;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -16,7 +20,7 @@ class ActionRegistryTest {
         ActionFactory factory = (node, parser) -> ctx -> {
         };
 
-        registry.register("NEXT_PLAYER", factory);
+        registry.register(CapabilityDescriptor.action("NEXT_PLAYER", List.of()), factory);
 
         assertSame(factory, registry.get("NEXT_PLAYER"));
         assertTrue(registry.contains("NEXT_PLAYER"));
@@ -25,11 +29,11 @@ class ActionRegistryTest {
     @Test
     void rejectsDuplicateRegistration() {
         ActionRegistry registry = new ActionRegistry();
-        registry.register("NEXT_PLAYER", (node, parser) -> ctx -> {
+        registry.register(CapabilityDescriptor.action("NEXT_PLAYER", List.of()), (node, parser) -> ctx -> {
         });
 
         assertThrows(IllegalStateException.class,
-                () -> registry.register("NEXT_PLAYER", (node, parser) -> ctx -> {
+                () -> registry.register(CapabilityDescriptor.action("NEXT_PLAYER", List.of()), (node, parser) -> ctx -> {
                 }));
     }
 
@@ -45,5 +49,34 @@ class ActionRegistryTest {
         ActionRegistry registry = new ActionRegistry();
 
         assertFalse(registry.contains("UNKNOWN"));
+    }
+
+    @Test
+    void describeReturnsRegisteredDescriptor() {
+        ActionRegistry registry = new ActionRegistry();
+        CapabilityDescriptor descriptor = CapabilityDescriptor.action("NEXT_PLAYER", List.of());
+        registry.register(descriptor, (node, parser) -> ctx -> {
+        });
+
+        assertSame(descriptor, registry.describe("NEXT_PLAYER"));
+    }
+
+    @Test
+    void describeAllPreservesRegistrationOrder() {
+        ActionRegistry registry = new ActionRegistry();
+        registry.register(CapabilityDescriptor.action("NEXT_PLAYER", List.of()), (node, parser) -> ctx -> {
+        });
+        registry.register(CapabilityDescriptor.action("SEQUENCE", List.of()), (node, parser) -> ctx -> {
+        });
+
+        assertEquals(List.of("NEXT_PLAYER", "SEQUENCE"),
+                registry.describeAll().stream().map(CapabilityDescriptor::name).toList());
+    }
+
+    @Test
+    void describeThrowsOnUnknownCapability() {
+        ActionRegistry registry = new ActionRegistry();
+
+        assertThrows(UnknownCapabilityException.class, () -> registry.describe("UNKNOWN"));
     }
 }

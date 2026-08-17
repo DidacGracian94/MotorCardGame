@@ -88,4 +88,16 @@ public final class RuleSetParser {
             throw new InvalidGameDefinitionException(e.getMessage(), e);
         }
     }
+
+    public ActionRegistry actionRegistry() {
+        return actionRegistry;
+    }
+
+    public ConditionRegistry conditionRegistry() {
+        return conditionRegistry;
+    }
+
+    public TargetRegistry targetRegistry() {
+        return targetRegistry;
+    }
 }

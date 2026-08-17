@@ -1,4 +1,5 @@
 import { GameDefinitionDto } from '@/api/client'
+import { useTranslation } from '@/i18n/LanguageContext'
 import { formatDate } from '@/lib/utils'
 
 interface Props {
@@ -12,22 +13,24 @@ export default function GameDefinitionsTable({
   onViewVersions,
   onRename,
 }: Props) {
+  const { t } = useTranslation()
+
   return (
     <div className="overflow-x-auto bg-white rounded-lg shadow">
       <table className="min-w-full divide-y divide-slate-200">
         <thead className="bg-slate-50">
           <tr>
             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-              Name
+              {t('common.name')}
             </th>
             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-              Slug
+              {t('common.slug')}
             </th>
             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
-              Created
+              {t('common.created')}
             </th>
             <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900">
-              Actions
+              {t('common.actions')}
             </th>
           </tr>
         </thead>
@@ -48,13 +51,13 @@ export default function GameDefinitionsTable({
                   onClick={() => onViewVersions(def.id)}
                   className="text-blue-600 hover:text-blue-700 font-medium text-sm"
                 >
-                  Versions
+                  {t('gameDefinitions.viewVersions')}
                 </button>
                 <button
                   onClick={() => onRename(def.id)}
                   className="text-amber-600 hover:text-amber-700 font-medium text-sm"
                 >
-                  Rename
+                  {t('common.rename')}
                 </button>
               </td>
             </tr>

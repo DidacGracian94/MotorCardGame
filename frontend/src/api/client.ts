@@ -51,7 +51,14 @@ export const api = {
             body: JSON.stringify(data),
           }
         ),
+      get: (gameDefinitionId: string, versionNumber: number) =>
+        apiCall<GameDefinitionVersionDto>(
+          `/game-definitions/${gameDefinitionId}/versions/${versionNumber}`
+        ),
     },
+  },
+  capabilities: {
+    list: () => apiCall<CapabilitiesDto>('/capabilities'),
   },
 }
 
@@ -81,4 +88,33 @@ export interface CreateGameDefinitionRequest {
 
 export interface PublishVersionRequest {
   config: unknown
+}
+
+export interface CapabilityFieldDto {
+  name: string
+  kind:
+    | 'ZONE_REF'
+    | 'TEXT'
+    | 'INTEGER'
+    | 'BOOLEAN'
+    | 'SCALAR'
+    | 'ENUM'
+    | 'CONDITION'
+    | 'CONDITION_LIST'
+    | 'ACTION'
+    | 'ACTION_LIST'
+  required: boolean
+  defaultValue: string | null
+  enumValues: string[] | null
+}
+
+export interface CapabilityDto {
+  name: string
+  fields: CapabilityFieldDto[]
+}
+
+export interface CapabilitiesDto {
+  actions: CapabilityDto[]
+  conditions: CapabilityDto[]
+  targets: CapabilityDto[]
 }

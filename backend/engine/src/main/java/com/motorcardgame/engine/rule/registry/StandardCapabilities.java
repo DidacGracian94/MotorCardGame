@@ -18,6 +18,8 @@ import com.motorcardgame.engine.rule.condition.NotCondition;
 import com.motorcardgame.engine.rule.condition.OrCondition;
 import com.motorcardgame.engine.rule.condition.Position;
 import com.motorcardgame.engine.rule.condition.ZoneIsEmptyCondition;
+import com.motorcardgame.engine.rule.registry.describe.CapabilityDescriptor;
+import com.motorcardgame.engine.rule.registry.describe.FieldDescriptor;
 import com.motorcardgame.engine.rule.target.AllPlayersTarget;
 import com.motorcardgame.engine.rule.target.CurrentPlayerTarget;
 
@@ -33,6 +35,8 @@ import java.util.List;
  */
 public final class StandardCapabilities {
 
+    private static final List<String> POSITION_VALUES = List.of("TOP", "BOTTOM");
+
     private StandardCapabilities() {
     }
 
@@ -44,69 +48,115 @@ public final class StandardCapabilities {
     }
 
     private static void registerActions(ActionRegistry actionRegistry) {
-        actionRegistry.register("DRAW_CARDS", (node, parser) -> new DrawCardsAction(
-                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "from")),
-                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "to")),
-                JsonNodes.requiredInt(node, "count")));
+        actionRegistry.register(
+                CapabilityDescriptor.action("DRAW_CARDS", List.of(
+                        FieldDescriptor.zoneRef("from"),
+                        FieldDescriptor.zoneRef("to"),
+                        FieldDescriptor.integer("count"))),
+                (node, parser) -> new DrawCardsAction(
+                        ZoneRefs.fromJson(JsonNodes.requiredObject(node, "from")),
+                        ZoneRefs.fromJson(JsonNodes.requiredObject(node, "to")),
+                        JsonNodes.requiredInt(node, "count")));
 
-        actionRegistry.register("NEXT_PLAYER", (node, parser) -> new NextPlayerAction());
+        actionRegistry.register(
+                CapabilityDescriptor.action("NEXT_PLAYER", List.of()),
+                (node, parser) -> new NextPlayerAction());
 
-        actionRegistry.register("MOVE_CARD", (node, parser) -> new MoveCardAction(
-                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "from")),
-                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "to"))));
+        actionRegistry.register(
+                CapabilityDescriptor.action("MOVE_CARD", List.of(
+                        FieldDescriptor.zoneRef("from"),
+                        FieldDescriptor.zoneRef("to"))),
+                (node, parser) -> new MoveCardAction(
+                        ZoneRefs.fromJson(JsonNodes.requiredObject(node, "from")),
+                        ZoneRefs.fromJson(JsonNodes.requiredObject(node, "to"))));
 
-        actionRegistry.register("SEQUENCE", (node, parser) -> {
-            List<Action> actions = new ArrayList<>();
-            for (JsonNode child : JsonNodes.requiredArray(node, "actions")) {
-                actions.add(parser.parseAction(child));
-            }
-            return new SequenceAction(actions.toArray(new Action[0]));
-        });
+        actionRegistry.register(
+                CapabilityDescriptor.action("SEQUENCE", List.of(
+                        FieldDescriptor.actionList("actions"))),
+                (node, parser) -> {
+                    List<Action> actions = new ArrayList<>();
+                    for (JsonNode child : JsonNodes.requiredArray(node, "actions")) {
+                        actions.add(parser.parseAction(child));
+                    }
+                    return new SequenceAction(actions.toArray(new Action[0]));
+                });
 
-        actionRegistry.register("REPEAT", (node, parser) -> new RepeatAction(
-                parser.parseAction(JsonNodes.requiredObject(node, "action")),
-                JsonNodes.requiredInt(node, "times")));
+        actionRegistry.register(
+                CapabilityDescriptor.action("REPEAT", List.of(
+                        FieldDescriptor.action("action"),
+                        FieldDescriptor.integer("times"))),
+                (node, parser) -> new RepeatAction(
+                        parser.parseAction(JsonNodes.requiredObject(node, "action")),
+                        JsonNodes.requiredInt(node, "times")));
     }
 
     private static void registerConditions(ConditionRegistry conditionRegistry) {
-        conditionRegistry.register("ZONE_IS_EMPTY", (node, parser) -> new ZoneIsEmptyCondition(
-                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "zone"))));
+        conditionRegistry.register(
+                CapabilityDescriptor.condition("ZONE_IS_EMPTY", List.of(
+                        FieldDescriptor.zoneRef("zone"))),
+                (node, parser) -> new ZoneIsEmptyCondition(
+                        ZoneRefs.fromJson(JsonNodes.requiredObject(node, "zone"))));
 
-        conditionRegistry.register("CARD_ATTRIBUTE_EQUALS", (node, parser) -> new CardAttributeEqualsCondition(
-                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "zone")),
-                readPosition(node),
-                JsonNodes.requiredText(node, "attribute"),
-                JsonNodes.scalarValue(node.path("equals"))));
+        conditionRegistry.register(
+                CapabilityDescriptor.condition("CARD_ATTRIBUTE_EQUALS", List.of(
+                        FieldDescriptor.zoneRef("zone"),
+                        FieldDescriptor.enumField("position", POSITION_VALUES, "TOP"),
+                        FieldDescriptor.text("attribute"),
+                        FieldDescriptor.scalar("equals"))),
+                (node, parser) -> new CardAttributeEqualsCondition(
+                        ZoneRefs.fromJson(JsonNodes.requiredObject(node, "zone")),
+                        readPosition(node),
+                        JsonNodes.requiredText(node, "attribute"),
+                        JsonNodes.scalarValue(node.path("equals"))));
 
-        conditionRegistry.register("CARD_ATTRIBUTE_MATCHES_ZONE", (node, parser) -> new CardAttributeMatchesZoneCondition(
-                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "cardZone")),
-                JsonNodes.requiredText(node, "attribute"),
-                ZoneRefs.fromJson(JsonNodes.requiredObject(node, "zone")),
-                readPosition(node)));
+        conditionRegistry.register(
+                CapabilityDescriptor.condition("CARD_ATTRIBUTE_MATCHES_ZONE", List.of(
+                        FieldDescriptor.zoneRef("cardZone"),
+                        FieldDescriptor.text("attribute"),
+                        FieldDescriptor.zoneRef("zone"),
+                        FieldDescriptor.enumField("position", POSITION_VALUES, "TOP"))),
+                (node, parser) -> new CardAttributeMatchesZoneCondition(
+                        ZoneRefs.fromJson(JsonNodes.requiredObject(node, "cardZone")),
+                        JsonNodes.requiredText(node, "attribute"),
+                        ZoneRefs.fromJson(JsonNodes.requiredObject(node, "zone")),
+                        readPosition(node)));
 
-        conditionRegistry.register("AND", (node, parser) -> {
-            List<Condition> conditions = new ArrayList<>();
-            for (JsonNode child : JsonNodes.requiredArray(node, "conditions")) {
-                conditions.add(parser.parseCondition(child));
-            }
-            return new AndCondition(conditions.toArray(new Condition[0]));
-        });
+        conditionRegistry.register(
+                CapabilityDescriptor.condition("AND", List.of(
+                        FieldDescriptor.conditionList("conditions"))),
+                (node, parser) -> {
+                    List<Condition> conditions = new ArrayList<>();
+                    for (JsonNode child : JsonNodes.requiredArray(node, "conditions")) {
+                        conditions.add(parser.parseCondition(child));
+                    }
+                    return new AndCondition(conditions.toArray(new Condition[0]));
+                });
 
-        conditionRegistry.register("OR", (node, parser) -> {
-            List<Condition> conditions = new ArrayList<>();
-            for (JsonNode child : JsonNodes.requiredArray(node, "conditions")) {
-                conditions.add(parser.parseCondition(child));
-            }
-            return new OrCondition(conditions.toArray(new Condition[0]));
-        });
+        conditionRegistry.register(
+                CapabilityDescriptor.condition("OR", List.of(
+                        FieldDescriptor.conditionList("conditions"))),
+                (node, parser) -> {
+                    List<Condition> conditions = new ArrayList<>();
+                    for (JsonNode child : JsonNodes.requiredArray(node, "conditions")) {
+                        conditions.add(parser.parseCondition(child));
+                    }
+                    return new OrCondition(conditions.toArray(new Condition[0]));
+                });
 
-        conditionRegistry.register("NOT", (node, parser) -> new NotCondition(
-                parser.parseCondition(JsonNodes.requiredObject(node, "condition"))));
+        conditionRegistry.register(
+                CapabilityDescriptor.condition("NOT", List.of(
+                        FieldDescriptor.condition("condition"))),
+                (node, parser) -> new NotCondition(
+                        parser.parseCondition(JsonNodes.requiredObject(node, "condition"))));
     }
 
     private static void registerTargets(TargetRegistry targetRegistry) {
-        targetRegistry.register("CURRENT_PLAYER", (node, parser) -> new CurrentPlayerTarget());
-        targetRegistry.register("ALL_PLAYERS", (node, parser) -> new AllPlayersTarget());
+        targetRegistry.register(
+                CapabilityDescriptor.target("CURRENT_PLAYER", List.of()),
+                (node, parser) -> new CurrentPlayerTarget());
+        targetRegistry.register(
+                CapabilityDescriptor.target("ALL_PLAYERS", List.of()),
+                (node, parser) -> new AllPlayersTarget());
     }
 
     private static Position readPosition(JsonNode node) {
