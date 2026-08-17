@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -114,6 +115,27 @@ class GameStateTest {
         state.registerPlayerZone(BOB.id(), "hand", bobHand);
 
         assertEquals(Map.of("hand", Map.of(ALICE.id(), aliceHand, BOB.id(), bobHand)), state.perPlayerZones());
+    }
+
+    @Test
+    void isCurrentPlayerTrueForCurrentPlayer() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+
+        assertTrue(state.isCurrentPlayer(ALICE.id()));
+    }
+
+    @Test
+    void isCurrentPlayerFalseForOtherPlayer() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+
+        assertFalse(state.isCurrentPlayer(BOB.id()));
+    }
+
+    @Test
+    void isCurrentPlayerFalseForUnknownPlayer() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+
+        assertFalse(state.isCurrentPlayer(new PlayerId("carol")));
     }
 
     @Test

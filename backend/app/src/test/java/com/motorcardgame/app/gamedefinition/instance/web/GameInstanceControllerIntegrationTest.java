@@ -199,4 +199,77 @@ class GameInstanceControllerIntegrationTest {
         mockMvc.perform(get("/api/instances/{id}", UUID.randomUUID()))
                 .andExpect(status().isNotFound());
     }
+
+    private static Map<String, Object> drawCardsOnRequestConfig() {
+        return Map.of(
+                "zones", List.of(
+                        Map.of("name", "deck", "ownership", "SHARED"),
+                        Map.of("name", "hand", "ownership", "PER_PLAYER")),
+                "cards", List.of(Map.of("id", "red", "zone", "deck", "count", 10, "attributes", Map.of("color", "RED"))),
+                "rules", List.of(Map.of(
+                        "event", "PLAYER_REQUESTED_DRAW",
+                        "condition", Map.of("type", "AND", "conditions", List.of()),
+                        "target", Map.of("type", "CURRENT_PLAYER"),
+                        "action", Map.of(
+                                "type", "DRAW_CARDS", "count", 1,
+                                "from", Map.of("name", "deck", "ownership", "SHARED"),
+                                "to", Map.of("name", "hand", "ownership", "PER_PLAYER")))));
+    }
+
+    @Test
+    void applyAction_drawsCardForCurrentPlayer_whenEventMatchesConfiguredRule() throws Exception {
+        UUID gameDefinitionId = createGameDefinition("uno-instancias-8");
+        publishVersion(gameDefinitionId, drawCardsOnRequestConfig());
+        List<Map<String, String>> players = List.of(
+                Map.of("id", "alice", "displayName", "Alice"), Map.of("id", "bob", "displayName", "Bob"));
+        String body = createInstance(gameDefinitionId, 1, players);
+        String instanceId = objectMapper.readTree(body).get("id").asText();
+
+        mockMvc.perform(post("/api/instances/{id}/actions", instanceId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("playerId", "alice", "eventType", "PLAYER_REQUESTED_DRAW"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state.perPlayerZones.hand.alice.length()").value(1))
+                .andExpect(jsonPath("$.state.sharedZones.deck.length()").value(9));
+    }
+
+    @Test
+    void applyAction_returnsConflict_whenActingPlayerIsNotCurrentPlayer() throws Exception {
+        UUID gameDefinitionId = createGameDefinition("uno-instancias-9");
+        publishVersion(gameDefinitionId, drawCardsOnRequestConfig());
+        List<Map<String, String>> players = List.of(
+                Map.of("id", "alice", "displayName", "Alice"), Map.of("id", "bob", "displayName", "Bob"));
+        String body = createInstance(gameDefinitionId, 1, players);
+        String instanceId = objectMapper.readTree(body).get("id").asText();
+
+        mockMvc.perform(post("/api/instances/{id}/actions", instanceId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("playerId", "bob", "eventType", "PLAYER_REQUESTED_DRAW"))))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void applyAction_returnsNotFound_whenInstanceDoesNotExist() throws Exception {
+        mockMvc.perform(post("/api/instances/{id}/actions", UUID.randomUUID())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("playerId", "alice", "eventType", "PLAYER_REQUESTED_DRAW"))))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void applyAction_returnsBadRequest_whenPlayerIdIsBlank() throws Exception {
+        UUID gameDefinitionId = createGameDefinition("uno-instancias-10");
+        publishVersion(gameDefinitionId, drawCardsOnRequestConfig());
+        String body = createInstance(gameDefinitionId, 1, ONE_PLAYER);
+        String instanceId = objectMapper.readTree(body).get("id").asText();
+
+        mockMvc.perform(post("/api/instances/{id}/actions", instanceId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("playerId", "", "eventType", "PLAYER_REQUESTED_DRAW"))))
+                .andExpect(status().isBadRequest());
+    }
 }

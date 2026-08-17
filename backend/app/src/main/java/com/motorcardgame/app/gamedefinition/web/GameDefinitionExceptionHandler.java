@@ -3,6 +3,7 @@ package com.motorcardgame.app.gamedefinition.web;
 import com.motorcardgame.app.gamedefinition.application.GameDefinitionNotFoundException;
 import com.motorcardgame.app.gamedefinition.application.SlugAlreadyExistsException;
 import com.motorcardgame.app.gamedefinition.instance.application.GameInstanceNotFoundException;
+import com.motorcardgame.app.gamedefinition.instance.application.NotPlayersTurnException;
 import com.motorcardgame.app.gamedefinition.instance.web.GameInstanceController;
 import com.motorcardgame.app.gamedefinition.instance.web.InstanceController;
 import com.motorcardgame.app.gamedefinition.version.application.GameDefinitionVersionNotFoundException;
@@ -45,6 +46,11 @@ class GameDefinitionExceptionHandler {
     @ExceptionHandler(GameInstanceNotFoundException.class)
     ResponseEntity<String> handleInstanceNotFound(GameInstanceNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(NotPlayersTurnException.class)
+    ResponseEntity<String> handleNotPlayersTurn(NotPlayersTurnException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 
     @ExceptionHandler(InvalidGameDefinitionException.class)

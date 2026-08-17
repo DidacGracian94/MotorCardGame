@@ -53,6 +53,10 @@ public final class GameState {
         return currentPlayerIndex;
     }
 
+    public boolean isCurrentPlayer(PlayerId playerId) {
+        return currentPlayer().id().equals(playerId);
+    }
+
     public void advanceTurn() {
         currentPlayerIndex = (currentPlayerIndex + 1) % players.size();
     }

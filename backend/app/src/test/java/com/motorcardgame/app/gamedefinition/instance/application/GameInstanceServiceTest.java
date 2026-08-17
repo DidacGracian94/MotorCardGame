@@ -3,6 +3,8 @@ package com.motorcardgame.app.gamedefinition.instance.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
@@ -18,10 +20,15 @@ import com.motorcardgame.engine.config.GameSetupParser;
 import com.motorcardgame.engine.config.GameStateSerializer;
 import com.motorcardgame.engine.config.RuleSetParser;
 import com.motorcardgame.engine.exception.InvalidGameDefinitionException;
+import com.motorcardgame.engine.rule.Rule;
+import com.motorcardgame.engine.rule.condition.AndCondition;
+import com.motorcardgame.engine.rule.action.NextPlayerAction;
+import com.motorcardgame.engine.rule.target.CurrentPlayerTarget;
 import com.motorcardgame.engine.state.GameState;
 import com.motorcardgame.engine.state.Player;
 import com.motorcardgame.engine.state.PlayerId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -154,5 +161,66 @@ class GameInstanceServiceTest {
         assertThatThrownBy(() -> service.listByGameDefinition(missingId))
                 .isInstanceOf(GameDefinitionNotFoundException.class);
         verifyNoInteractions(repository);
+    }
+
+    @Test
+    void applyAction_savesUpdatedState_whenActingPlayerIsCurrentPlayer() {
+        PlayerId alice = new PlayerId("alice");
+        PlayerId bob = new PlayerId("bob");
+        GameState state = new GameState(List.of(new Player(alice, "Alice"), new Player(bob, "Bob")));
+        GameInstance instance = GameInstance.create(UUID.randomUUID(), UUID.randomUUID(), "{\"before\":true}");
+        GameDefinitionVersion version = GameDefinitionVersion.publish(instance.gameDefinitionId(), 1, "{\"rules\":[]}");
+        Rule advanceTurnRule = new Rule(
+                "PLAYER_REQUESTED_NEXT_TURN", new AndCondition(), new CurrentPlayerTarget(), new NextPlayerAction());
+        when(repository.findById(instance.id())).thenReturn(Optional.of(instance));
+        when(gameDefinitionVersionService.getById(instance.gameDefinitionVersionId())).thenReturn(version);
+        when(ruleSetParser.parse(version.config())).thenReturn(List.of(advanceTurnRule));
+        when(gameStateSerializer.fromJson(instance.state())).thenReturn(state);
+        when(gameStateSerializer.toJson(state)).thenReturn("{\"after\":true}");
+        when(repository.save(any(GameInstance.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        GameInstance updated = service.applyAction(instance.id(), alice, "PLAYER_REQUESTED_NEXT_TURN", Map.of());
+
+        assertThat(updated.state()).isEqualTo("{\"after\":true}");
+        assertThat(state.currentPlayer().id()).isEqualTo(bob);
+    }
+
+    @Test
+    void applyAction_throwsNotPlayersTurn_whenActingPlayerIsNotCurrentPlayer() {
+        PlayerId alice = new PlayerId("alice");
+        PlayerId bob = new PlayerId("bob");
+        GameState state = new GameState(List.of(new Player(alice, "Alice"), new Player(bob, "Bob")));
+        GameInstance instance = GameInstance.create(UUID.randomUUID(), UUID.randomUUID(), "{\"before\":true}");
+        GameDefinitionVersion version = GameDefinitionVersion.publish(instance.gameDefinitionId(), 1, "{\"rules\":[]}");
+        when(repository.findById(instance.id())).thenReturn(Optional.of(instance));
+        when(gameDefinitionVersionService.getById(instance.gameDefinitionVersionId())).thenReturn(version);
+        when(ruleSetParser.parse(version.config())).thenReturn(List.of());
+        when(gameStateSerializer.fromJson(instance.state())).thenReturn(state);
+
+        assertThatThrownBy(() -> service.applyAction(instance.id(), bob, "PLAYER_REQUESTED_NEXT_TURN", Map.of()))
+                .isInstanceOf(NotPlayersTurnException.class);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
+    void applyAction_throwsInstanceNotFound_whenInstanceMissing() {
+        UUID missingId = UUID.randomUUID();
+        when(repository.findById(missingId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.applyAction(missingId, new PlayerId("alice"), "ANY_EVENT", Map.of()))
+                .isInstanceOf(GameInstanceNotFoundException.class);
+        verifyNoInteractions(gameDefinitionVersionService);
+    }
+
+    @Test
+    void applyAction_throwsVersionNotFound_whenVersionMissing() {
+        GameInstance instance = GameInstance.create(UUID.randomUUID(), UUID.randomUUID(), "{}");
+        when(repository.findById(instance.id())).thenReturn(Optional.of(instance));
+        when(gameDefinitionVersionService.getById(instance.gameDefinitionVersionId()))
+                .thenThrow(new GameDefinitionVersionNotFoundException(instance.gameDefinitionVersionId()));
+
+        assertThatThrownBy(() -> service.applyAction(instance.id(), new PlayerId("alice"), "ANY_EVENT", Map.of()))
+                .isInstanceOf(GameDefinitionVersionNotFoundException.class);
+        verify(repository, never()).save(any());
     }
 }

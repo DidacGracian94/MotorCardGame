@@ -13,7 +13,9 @@ import com.motorcardgame.engine.rule.Rule;
 import com.motorcardgame.engine.rule.RuleEngine;
 import com.motorcardgame.engine.state.GameState;
 import com.motorcardgame.engine.state.Player;
+import com.motorcardgame.engine.state.PlayerId;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,6 +65,29 @@ public class GameInstanceService {
     @Transactional(readOnly = true)
     public GameInstance getById(UUID id) {
         return repository.findById(id).orElseThrow(() -> new GameInstanceNotFoundException(id));
+    }
+
+    /**
+     * Carga el estado persistido de una instancia, valida que quien actúa es el jugador con el
+     * turno actual, despacha el evento contra las reglas de la versión con la que se creó la
+     * instancia, y persiste el resultado. No conoce ningún tipo de evento concreto — cualquier
+     * capacidad que la config de esa versión ya tenga cableada (DRAW_CARDS, NEXT_PLAYER, ...) es
+     * la que decide qué ocurre.
+     */
+    @Transactional
+    public GameInstance applyAction(UUID instanceId, PlayerId actingPlayerId, String eventType, Map<String, Object> payload) {
+        GameInstance instance = getById(instanceId);
+        GameDefinitionVersion version = gameDefinitionVersionService.getById(instance.gameDefinitionVersionId());
+        List<Rule> rules = ruleSetParser.parse(version.config());
+        GameState state = gameStateSerializer.fromJson(instance.state());
+
+        if (!state.isCurrentPlayer(actingPlayerId)) {
+            throw new NotPlayersTurnException(instanceId, actingPlayerId, state.currentPlayer().id());
+        }
+
+        new RuleEngine(rules).handle(new Event(eventType, payload), state);
+
+        return repository.save(instance.withState(gameStateSerializer.toJson(state)));
     }
 
     @Transactional(readOnly = true)

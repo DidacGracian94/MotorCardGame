@@ -31,6 +31,10 @@ public final class GameInstance {
         return new GameInstance(UUID.randomUUID(), gameDefinitionId, gameDefinitionVersionId, state, Instant.now(), null);
     }
 
+    public GameInstance withState(String newState) {
+        return new GameInstance(id, gameDefinitionId, gameDefinitionVersionId, newState, createdAt, endedAt);
+    }
+
     public static GameInstance reconstitute(
             UUID id,
             UUID gameDefinitionId,

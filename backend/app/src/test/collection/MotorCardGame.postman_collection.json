@@ -152,7 +152,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"config\": {\n    \"zones\": [\n      { \"name\": \"deck\", \"ownership\": \"SHARED\", \"shuffle\": true },\n      { \"name\": \"discard\", \"ownership\": \"SHARED\" },\n      { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n    ],\n    \"cards\": [\n      { \"id\": \"red\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"RED\" } },\n      { \"id\": \"blue\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"BLUE\" } }\n    ],\n    \"rules\": [\n      {\n        \"event\": \"GAME_STARTED\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"ALL_PLAYERS\" },\n        \"action\": {\n          \"type\": \"REPEAT\",\n          \"times\": 7,\n          \"action\": {\n            \"type\": \"DRAW_CARDS\",\n            \"count\": 1,\n            \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n            \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n          }\n        }\n      }\n    ]\n  }\n}"
+              "raw": "{\n  \"config\": {\n    \"zones\": [\n      { \"name\": \"deck\", \"ownership\": \"SHARED\", \"shuffle\": true },\n      { \"name\": \"discard\", \"ownership\": \"SHARED\" },\n      { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n    ],\n    \"cards\": [\n      { \"id\": \"red\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"RED\" } },\n      { \"id\": \"blue\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"BLUE\" } }\n    ],\n    \"rules\": [\n      {\n        \"event\": \"GAME_STARTED\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"ALL_PLAYERS\" },\n        \"action\": {\n          \"type\": \"REPEAT\",\n          \"times\": 7,\n          \"action\": {\n            \"type\": \"DRAW_CARDS\",\n            \"count\": 1,\n            \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n            \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n          }\n        }\n      },\n      {\n        \"event\": \"PLAYER_REQUESTED_DRAW\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"DRAW_CARDS\",\n          \"count\": 1,\n          \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n          \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n        }\n      }\n    ]\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/versions",
@@ -274,6 +274,58 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "instances", "{{gameInstanceId}}"]
             }
+          }
+        },
+        {
+          "name": "Apply player action",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('alice drew a card', () => pm.expect(body.state.perPlayerZones.hand.alice.length).to.eql(8));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"alice\",\n  \"eventType\": \"PLAYER_REQUESTED_DRAW\",\n  \"payload\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/instances/{{gameInstanceId}}/actions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "instances", "{{gameInstanceId}}", "actions"]
+            }
+          }
+        },
+        {
+          "name": "[Error] Apply player action - 409 not player's turn",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 409', () => pm.response.to.have.status(409));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"bob\",\n  \"eventType\": \"PLAYER_REQUESTED_DRAW\",\n  \"payload\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/instances/{{gameInstanceId}}/actions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "instances", "{{gameInstanceId}}", "actions"]
+            },
+            "description": "El turno inicial es de Alice (primer jugador de la lista al crear la instancia) y PLAYER_REQUESTED_DRAW no avanza turno, así que Bob nunca puede actuar aquí (409)."
           }
         },
         {
