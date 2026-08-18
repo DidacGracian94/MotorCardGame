@@ -8,7 +8,11 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 
 Write-Host "Levantando Postgres (docker compose)..." -ForegroundColor Cyan
-docker compose up -d postgres
+docker compose up -d --wait postgres
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Postgres no ha llegado a estar 'healthy'. Revisa 'docker compose logs postgres'."
+    exit 1
+}
 
 Write-Host "Instalando backend/engine en el repo local de Maven..." -ForegroundColor Cyan
 & "$root\mvnw.cmd" install -pl backend/engine -q -DskipTests

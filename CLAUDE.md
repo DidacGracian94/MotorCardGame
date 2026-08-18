@@ -3,6 +3,12 @@
 Plataforma configurable y extensible para crear, guardar, reutilizar y ejecutar juegos de cartas
 mediante un motor genérico + definiciones declarativas (JSON), no código específico por juego.
 
+## Idioma de trabajo
+
+Responde siempre en castellano en esta conversación (texto dirigido al usuario, preguntas,
+resúmenes). Esto no afecta al código, comentarios, identificadores ni a los mensajes de commit,
+que siguen las convenciones propias del proyecto/código en cada caso.
+
 UNO es el primer caso de validación del motor. Brisca y Escoba son las siguientes pruebas de
 generalización. Un juego inventado (ver hito M9) debe poder construirse solo con el editor, sin
 tocar el motor, como prueba de que el sistema no está simplemente adaptado a UNO.
