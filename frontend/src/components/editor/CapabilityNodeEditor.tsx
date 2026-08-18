@@ -1,7 +1,7 @@
 import { CapabilitiesDto, CapabilityDto } from '@/api/client'
 import { useTranslation } from '@/i18n/LanguageContext'
 import { createDefaultListItem, createDefaultNode } from '@/lib/configTransforms'
-import { CapabilityNode, FieldValue, ZoneConfig, ZoneRefValue } from '@/types/config'
+import { AttributesConfig, CapabilityNode, FieldValue, ZoneConfig, ZoneRefValue } from '@/types/config'
 import ScalarValueField from '@/components/editor/ScalarValueField'
 import ZoneRefField from '@/components/editor/ZoneRefField'
 
@@ -13,7 +13,9 @@ interface Props {
   onChange: (node: CapabilityNode) => void
   catalogs: CapabilitiesDto
   zones: ZoneConfig[]
+  attributes: AttributesConfig
   depth: number
+  readOnly?: boolean
 }
 
 function catalogFor(kind: NodeKind, catalogs: CapabilitiesDto): CapabilityDto[] {
@@ -22,7 +24,16 @@ function catalogFor(kind: NodeKind, catalogs: CapabilitiesDto): CapabilityDto[] 
   return catalogs.targets
 }
 
-export default function CapabilityNodeEditor({ kind, node, onChange, catalogs, zones, depth }: Props) {
+export default function CapabilityNodeEditor({
+  kind,
+  node,
+  onChange,
+  catalogs,
+  zones,
+  attributes,
+  depth,
+  readOnly = false,
+}: Props) {
   const { t, tf } = useTranslation()
   const catalog = catalogFor(kind, catalogs)
   const descriptor = catalog.find((c) => c.name === node.type)
@@ -45,7 +56,8 @@ export default function CapabilityNodeEditor({ kind, node, onChange, catalogs, z
       <select
         value={node.type}
         onChange={(e) => handleTypeChange(e.target.value)}
-        className="px-2 py-1 border border-slate-300 rounded text-sm bg-white"
+        disabled={readOnly}
+        className="px-2 py-1 border border-slate-300 rounded text-sm bg-white disabled:bg-slate-50 disabled:text-slate-600"
       >
         <option value="">{t('editor.selectCapabilityPlaceholder')}</option>
         {catalog.map((capability) => (
@@ -66,15 +78,26 @@ export default function CapabilityNodeEditor({ kind, node, onChange, catalogs, z
               value={(node.fields[field.name] as ZoneRefValue | undefined) ?? { name: '', ownership: 'SHARED' }}
               onChange={(value) => updateField(field.name, value)}
               zones={zones}
+              readOnly={readOnly}
             />
           )}
 
-          {field.kind === 'TEXT' && (
+          {field.kind === 'TEXT' && field.name === 'attribute' && (
+            <AttributeFieldSelect
+              value={(node.fields[field.name] as string | undefined) ?? ''}
+              onChange={(value) => updateField(field.name, value)}
+              attributes={attributes}
+              readOnly={readOnly}
+            />
+          )}
+
+          {field.kind === 'TEXT' && field.name !== 'attribute' && (
             <input
               type="text"
               value={(node.fields[field.name] as string | undefined) ?? ''}
               onChange={(e) => updateField(field.name, e.target.value)}
-              className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+              disabled={readOnly}
+              className="w-full px-2 py-1 border border-slate-300 rounded text-sm disabled:bg-slate-50 disabled:text-slate-600"
             />
           )}
 
@@ -83,7 +106,8 @@ export default function CapabilityNodeEditor({ kind, node, onChange, catalogs, z
               type="number"
               value={(node.fields[field.name] as number | undefined) ?? 0}
               onChange={(e) => updateField(field.name, Number(e.target.value))}
-              className="w-full px-2 py-1 border border-slate-300 rounded text-sm"
+              disabled={readOnly}
+              className="w-full px-2 py-1 border border-slate-300 rounded text-sm disabled:bg-slate-50 disabled:text-slate-600"
             />
           )}
 
@@ -92,22 +116,34 @@ export default function CapabilityNodeEditor({ kind, node, onChange, catalogs, z
               type="checkbox"
               checked={(node.fields[field.name] as boolean | undefined) ?? false}
               onChange={(e) => updateField(field.name, e.target.checked)}
+              disabled={readOnly}
               className="h-4 w-4"
             />
           )}
 
-          {field.kind === 'SCALAR' && (
-            <ScalarValueField
-              value={(node.fields[field.name] as string | number | boolean | undefined) ?? ''}
-              onChange={(value) => updateField(field.name, value)}
-            />
-          )}
+          {field.kind === 'SCALAR' && (() => {
+            // Si este nodo tiene un campo "attribute" hermano (p.ej. CARD_ATTRIBUTE_EQUALS), el
+            // valor de este campo debe encajar con lo que ese atributo declara — se fuerza su
+            // tipo/opciones en vez de dejar elegir tipo y texto libres por separado.
+            const referencedAttributeName = node.fields.attribute as string | undefined
+            const referencedAttribute = referencedAttributeName ? attributes[referencedAttributeName] : undefined
+            return (
+              <ScalarValueField
+                value={(node.fields[field.name] as string | number | boolean | undefined) ?? ''}
+                onChange={(value) => updateField(field.name, value)}
+                type={referencedAttribute?.type}
+                options={referencedAttribute?.options}
+                readOnly={readOnly}
+              />
+            )
+          })()}
 
           {field.kind === 'ENUM' && (
             <select
               value={(node.fields[field.name] as string | undefined) ?? field.defaultValue ?? ''}
               onChange={(e) => updateField(field.name, e.target.value)}
-              className="px-2 py-1 border border-slate-300 rounded text-sm"
+              disabled={readOnly}
+              className="px-2 py-1 border border-slate-300 rounded text-sm disabled:bg-slate-50 disabled:text-slate-600"
             >
               {(field.enumValues ?? []).map((option) => (
                 <option key={option} value={option}>
@@ -124,7 +160,9 @@ export default function CapabilityNodeEditor({ kind, node, onChange, catalogs, z
               onChange={(value) => updateField(field.name, value)}
               catalogs={catalogs}
               zones={zones}
+              attributes={attributes}
               depth={depth + 1}
+              readOnly={readOnly}
             />
           )}
 
@@ -135,12 +173,44 @@ export default function CapabilityNodeEditor({ kind, node, onChange, catalogs, z
               onChange={(nodes) => updateField(field.name, nodes)}
               catalogs={catalogs}
               zones={zones}
+              attributes={attributes}
               depth={depth + 1}
+              readOnly={readOnly}
             />
           )}
         </div>
       ))}
     </div>
+  )
+}
+
+interface AttributeFieldSelectProps {
+  value: string
+  onChange: (value: string) => void
+  attributes: AttributesConfig
+  readOnly?: boolean
+}
+
+function AttributeFieldSelect({ value, onChange, attributes, readOnly = false }: AttributeFieldSelectProps) {
+  const { t, tf } = useTranslation()
+  const declared = Object.keys(attributes)
+  const options = value && !declared.includes(value) ? [value, ...declared] : declared
+
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={readOnly}
+      className="px-2 py-1 border border-slate-300 rounded text-sm bg-white disabled:bg-slate-50 disabled:text-slate-600"
+    >
+      <option value="">{t('editor.selectAttributePlaceholder')}</option>
+      {options.map((name) => (
+        <option key={name} value={name}>
+          {tf(`attribute.${name}`, name)}
+          {!declared.includes(name) ? ` (${t('editor.attributeUndeclaredOption')})` : ''}
+        </option>
+      ))}
+    </select>
   )
 }
 
@@ -150,10 +220,12 @@ interface NodeListFieldProps {
   onChange: (nodes: CapabilityNode[]) => void
   catalogs: CapabilitiesDto
   zones: ZoneConfig[]
+  attributes: AttributesConfig
   depth: number
+  readOnly?: boolean
 }
 
-function NodeListField({ kind, nodes, onChange, catalogs, zones, depth }: NodeListFieldProps) {
+function NodeListField({ kind, nodes, onChange, catalogs, zones, attributes, depth, readOnly = false }: NodeListFieldProps) {
   const { t } = useTranslation()
   const catalogList = kind === 'CONDITION' ? catalogs.conditions : catalogs.actions
 
@@ -180,17 +252,23 @@ function NodeListField({ kind, nodes, onChange, catalogs, zones, depth }: NodeLi
               onChange={(value) => updateAt(index, value)}
               catalogs={catalogs}
               zones={zones}
+              attributes={attributes}
               depth={depth}
+              readOnly={readOnly}
             />
           </div>
-          <button onClick={() => removeAt(index)} className="text-red-600 hover:text-red-700 text-sm">
-            {t('common.remove')}
-          </button>
+          {!readOnly && (
+            <button onClick={() => removeAt(index)} className="text-red-600 hover:text-red-700 text-sm">
+              {t('common.remove')}
+            </button>
+          )}
         </div>
       ))}
-      <button onClick={addItem} className="text-blue-600 hover:text-blue-700 font-medium text-xs">
-        {kind === 'CONDITION' ? t('editor.addCondition') : t('editor.addAction')}
-      </button>
+      {!readOnly && (
+        <button onClick={addItem} className="text-blue-600 hover:text-blue-700 font-medium text-xs">
+          {kind === 'CONDITION' ? t('editor.addCondition') : t('editor.addAction')}
+        </button>
+      )}
     </div>
   )
 }

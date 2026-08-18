@@ -1,3 +1,4 @@
+import { useCapabilities } from '@/hooks/useCapabilities'
 import { useGameDefinitions, useGameDefinitionVersions } from '@/hooks/useGameDefinitions'
 import { useTranslation } from '@/i18n/LanguageContext'
 import VersionsTable from '@/components/VersionsTable'
@@ -17,6 +18,7 @@ export default function VersionsPage({
 }: Props) {
   const { data: definitions } = useGameDefinitions()
   const { data: versions, isLoading } = useGameDefinitionVersions(gameDefinitionId)
+  const { data: catalogs, isLoading: catalogsLoading } = useCapabilities()
   const { t } = useTranslation()
 
   const definition = definitions?.find((d) => d.id === gameDefinitionId)
@@ -45,7 +47,7 @@ export default function VersionsPage({
         </button>
       </div>
 
-      {isLoading ? (
+      {isLoading || catalogsLoading ? (
         <div className="text-center py-12">
           <p className="text-slate-600">{t('versions.loading')}</p>
         </div>
@@ -53,9 +55,9 @@ export default function VersionsPage({
         <div className="text-center py-12 bg-white rounded-lg">
           <p className="text-slate-600">{t('versions.empty')}</p>
         </div>
-      ) : (
-        <VersionsTable versions={versions} onEditAsNewVersion={onEditAsNewVersion} />
-      )}
+      ) : catalogs ? (
+        <VersionsTable versions={versions} catalogs={catalogs} onEditAsNewVersion={onEditAsNewVersion} />
+      ) : null}
     </div>
   )
 }

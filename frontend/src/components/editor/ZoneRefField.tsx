@@ -5,9 +5,10 @@ interface Props {
   value: ZoneRefValue
   onChange: (value: ZoneRefValue) => void
   zones: ZoneConfig[]
+  readOnly?: boolean
 }
 
-export default function ZoneRefField({ value, onChange, zones }: Props) {
+export default function ZoneRefField({ value, onChange, zones, readOnly = false }: Props) {
   const { t, tf } = useTranslation()
 
   return (
@@ -19,7 +20,8 @@ export default function ZoneRefField({ value, onChange, zones }: Props) {
           onChange({ name: zone.name, ownership: zone.ownership })
         }
       }}
-      className="px-2 py-1 border border-slate-300 rounded text-sm"
+      disabled={readOnly}
+      className="px-2 py-1 border border-slate-300 rounded text-sm disabled:bg-slate-50 disabled:text-slate-600"
     >
       <option value="">{t('editor.selectZonePlaceholder')}</option>
       {zones.map((zone) => (
