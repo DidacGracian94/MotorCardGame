@@ -10,10 +10,12 @@ import com.motorcardgame.engine.rule.action.DrawCardsAction;
 import com.motorcardgame.engine.rule.action.MoveCardAction;
 import com.motorcardgame.engine.rule.action.NextPlayerAction;
 import com.motorcardgame.engine.rule.action.RepeatAction;
+import com.motorcardgame.engine.rule.action.ReverseDirectionAction;
 import com.motorcardgame.engine.rule.action.SequenceAction;
 import com.motorcardgame.engine.rule.condition.AndCondition;
 import com.motorcardgame.engine.rule.condition.CardAttributeEqualsCondition;
 import com.motorcardgame.engine.rule.condition.CardAttributeMatchesZoneCondition;
+import com.motorcardgame.engine.rule.condition.EventCardAttributeEqualsCondition;
 import com.motorcardgame.engine.rule.condition.NotCondition;
 import com.motorcardgame.engine.rule.condition.OrCondition;
 import com.motorcardgame.engine.rule.condition.Position;
@@ -22,16 +24,18 @@ import com.motorcardgame.engine.rule.registry.describe.CapabilityDescriptor;
 import com.motorcardgame.engine.rule.registry.describe.FieldDescriptor;
 import com.motorcardgame.engine.rule.target.AllPlayersTarget;
 import com.motorcardgame.engine.rule.target.CurrentPlayerTarget;
+import com.motorcardgame.engine.rule.target.NextPlayerTarget;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Da de alta, en registries recién creados, las capacidades genéricas que trae el motor: los
- * decoradores lógicos/de control (AND, OR, NOT, SEQUENCE, REPEAT) y un primer lote de
- * capacidades de partida (DRAW_CARDS, NEXT_PLAYER, ZONE_IS_EMPTY, CARD_ATTRIBUTE_EQUALS,
- * CURRENT_PLAYER, ALL_PLAYERS) — generales para cualquier juego de cartas por turnos con pilas y
- * manos, no específicas de UNO, aunque UNO sea el primer caso que las ejercita.
+ * decoradores lógicos/de control (AND, OR, NOT, SEQUENCE, REPEAT) y un lote de capacidades de
+ * partida (DRAW_CARDS, NEXT_PLAYER, MOVE_CARD, REVERSE_DIRECTION, ZONE_IS_EMPTY,
+ * CARD_ATTRIBUTE_EQUALS, CARD_ATTRIBUTE_MATCHES_ZONE, EVENT_CARD_ATTRIBUTE_EQUALS,
+ * CURRENT_PLAYER, ALL_PLAYERS, NEXT_PLAYER) — generales para cualquier juego de cartas por turnos
+ * con pilas y manos, no específicas de UNO, aunque UNO sea el primer caso que las ejercita.
  */
 public final class StandardCapabilities {
 
@@ -88,6 +92,10 @@ public final class StandardCapabilities {
                 (node, parser) -> new RepeatAction(
                         parser.parseAction(JsonNodes.requiredObject(node, "action")),
                         JsonNodes.requiredInt(node, "times")));
+
+        actionRegistry.register(
+                CapabilityDescriptor.action("REVERSE_DIRECTION", List.of()),
+                (node, parser) -> new ReverseDirectionAction());
     }
 
     private static void registerConditions(ConditionRegistry conditionRegistry) {
@@ -120,6 +128,16 @@ public final class StandardCapabilities {
                         JsonNodes.requiredText(node, "attribute"),
                         ZoneRefs.fromJson(JsonNodes.requiredObject(node, "zone")),
                         readPosition(node)));
+
+        conditionRegistry.register(
+                CapabilityDescriptor.condition("EVENT_CARD_ATTRIBUTE_EQUALS", List.of(
+                        FieldDescriptor.zoneRef("cardZone"),
+                        FieldDescriptor.text("attribute"),
+                        FieldDescriptor.scalar("equals"))),
+                (node, parser) -> new EventCardAttributeEqualsCondition(
+                        ZoneRefs.fromJson(JsonNodes.requiredObject(node, "cardZone")),
+                        JsonNodes.requiredText(node, "attribute"),
+                        JsonNodes.scalarValue(node.path("equals"))));
 
         conditionRegistry.register(
                 CapabilityDescriptor.condition("AND", List.of(
@@ -157,6 +175,9 @@ public final class StandardCapabilities {
         targetRegistry.register(
                 CapabilityDescriptor.target("ALL_PLAYERS", List.of()),
                 (node, parser) -> new AllPlayersTarget());
+        targetRegistry.register(
+                CapabilityDescriptor.target("NEXT_PLAYER", List.of()),
+                (node, parser) -> new NextPlayerTarget());
     }
 
     private static Position readPosition(JsonNode node) {

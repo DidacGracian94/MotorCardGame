@@ -51,6 +51,7 @@ public class GameDefinitionVersionService {
     public GameDefinitionVersion publish(UUID gameDefinitionId, String config) {
         gameDefinitionService.getById(gameDefinitionId);
         ruleSetParser.parse(config);
+        ruleSetParser.validateEvents(config);
         gameSetupParser.buildInitialState(config, VALIDATION_PLAYERS);
 
         for (int attempt = 1; attempt <= MAX_PUBLISH_ATTEMPTS; attempt++) {

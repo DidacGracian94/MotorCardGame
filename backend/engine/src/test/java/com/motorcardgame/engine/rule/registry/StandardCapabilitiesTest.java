@@ -26,20 +26,23 @@ class StandardCapabilitiesTest {
         assertTrue(actionRegistry.contains("MOVE_CARD"));
         assertTrue(actionRegistry.contains("SEQUENCE"));
         assertTrue(actionRegistry.contains("REPEAT"));
+        assertTrue(actionRegistry.contains("REVERSE_DIRECTION"));
 
         assertTrue(conditionRegistry.contains("ZONE_IS_EMPTY"));
         assertTrue(conditionRegistry.contains("CARD_ATTRIBUTE_EQUALS"));
         assertTrue(conditionRegistry.contains("CARD_ATTRIBUTE_MATCHES_ZONE"));
+        assertTrue(conditionRegistry.contains("EVENT_CARD_ATTRIBUTE_EQUALS"));
         assertTrue(conditionRegistry.contains("AND"));
         assertTrue(conditionRegistry.contains("OR"));
         assertTrue(conditionRegistry.contains("NOT"));
 
         assertTrue(targetRegistry.contains("CURRENT_PLAYER"));
         assertTrue(targetRegistry.contains("ALL_PLAYERS"));
+        assertTrue(targetRegistry.contains("NEXT_PLAYER"));
 
-        assertEquals(5, actionRegistry.describeAll().size());
-        assertEquals(6, conditionRegistry.describeAll().size());
-        assertEquals(2, targetRegistry.describeAll().size());
+        assertEquals(6, actionRegistry.describeAll().size());
+        assertEquals(7, conditionRegistry.describeAll().size());
+        assertEquals(3, targetRegistry.describeAll().size());
     }
 
     @Test

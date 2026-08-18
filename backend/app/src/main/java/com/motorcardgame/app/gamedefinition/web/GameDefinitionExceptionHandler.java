@@ -5,6 +5,7 @@ import com.motorcardgame.app.gamedefinition.application.SlugAlreadyExistsExcepti
 import com.motorcardgame.app.gamedefinition.instance.application.GameInstanceNotFoundException;
 import com.motorcardgame.app.gamedefinition.instance.application.NotPlayersTurnException;
 import com.motorcardgame.app.gamedefinition.instance.application.PlayerActionRejectedException;
+import com.motorcardgame.app.gamedefinition.instance.application.UnknownPlayerActionException;
 import com.motorcardgame.app.gamedefinition.instance.web.GameInstanceController;
 import com.motorcardgame.app.gamedefinition.instance.web.InstanceController;
 import com.motorcardgame.app.gamedefinition.version.application.GameDefinitionVersionNotFoundException;
@@ -57,6 +58,11 @@ class GameDefinitionExceptionHandler {
     @ExceptionHandler(PlayerActionRejectedException.class)
     ResponseEntity<String> handlePlayerActionRejected(PlayerActionRejectedException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(UnknownPlayerActionException.class)
+    ResponseEntity<String> handleUnknownPlayerAction(UnknownPlayerActionException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
     @ExceptionHandler(InvalidGameDefinitionException.class)

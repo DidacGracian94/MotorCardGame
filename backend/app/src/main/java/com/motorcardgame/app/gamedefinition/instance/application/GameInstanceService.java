@@ -68,9 +68,11 @@ public class GameInstanceService {
     }
 
     /**
-     * Carga el estado persistido de una instancia, valida que quien actúa es el jugador con el
-     * turno actual, despacha el evento contra las reglas de la versión con la que se creó la
-     * instancia, y persiste el resultado. No conoce ningún tipo de evento concreto — cualquier
+     * Valida que {@code eventType} esté declarado en {@code playerActions} de esa versión (un
+     * jugador no puede disparar una acción que el diseñador del juego no ha preparado), carga el
+     * estado persistido de la instancia, valida que quien actúa es el jugador con el turno actual,
+     * despacha el evento contra las reglas de la versión con la que se creó la instancia, y
+     * persiste el resultado. No conoce ningún tipo de evento concreto más allá de eso — cualquier
      * capacidad que la config de esa versión ya tenga cableada (DRAW_CARDS, NEXT_PLAYER, ...) es
      * la que decide qué ocurre.
      */
@@ -78,6 +80,9 @@ public class GameInstanceService {
     public GameInstance applyAction(UUID instanceId, PlayerId actingPlayerId, String eventType, Map<String, Object> payload) {
         GameInstance instance = getById(instanceId);
         GameDefinitionVersion version = gameDefinitionVersionService.getById(instance.gameDefinitionVersionId());
+        if (!ruleSetParser.parsePlayerActions(version.config()).contains(eventType)) {
+            throw new UnknownPlayerActionException(instanceId, eventType);
+        }
         List<Rule> rules = ruleSetParser.parse(version.config());
         GameState state = gameStateSerializer.fromJson(instance.state());
 

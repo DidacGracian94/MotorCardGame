@@ -138,6 +138,18 @@ class GameDefinitionVersionServiceTest {
     }
 
     @Test
+    void publish_throwsInvalidGameDefinition_whenRuleEventsAreNotDeclared() {
+        UUID gameDefinitionId = UUID.randomUUID();
+        when(gameDefinitionService.getById(gameDefinitionId))
+                .thenReturn(GameDefinition.create(UUID.randomUUID(), "Mi Juego", "mi-juego"));
+        doThrow(new InvalidGameDefinitionException("boom")).when(ruleSetParser).validateEvents("{}");
+
+        assertThatThrownBy(() -> service.publish(gameDefinitionId, "{}"))
+                .isInstanceOf(InvalidGameDefinitionException.class);
+        verify(repository, never()).save(any());
+    }
+
+    @Test
     void publish_throwsInvalidGameDefinition_whenZonesAreInvalid() {
         UUID gameDefinitionId = UUID.randomUUID();
         when(gameDefinitionService.getById(gameDefinitionId))

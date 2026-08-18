@@ -30,6 +30,7 @@ import com.motorcardgame.engine.state.PlayerId;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -174,6 +175,7 @@ class GameInstanceServiceTest {
                 "PLAYER_REQUESTED_NEXT_TURN", new AndCondition(), new CurrentPlayerTarget(), new NextPlayerAction());
         when(repository.findById(instance.id())).thenReturn(Optional.of(instance));
         when(gameDefinitionVersionService.getById(instance.gameDefinitionVersionId())).thenReturn(version);
+        when(ruleSetParser.parsePlayerActions(version.config())).thenReturn(Set.of("PLAYER_REQUESTED_NEXT_TURN"));
         when(ruleSetParser.parse(version.config())).thenReturn(List.of(advanceTurnRule));
         when(gameStateSerializer.fromJson(instance.state())).thenReturn(state);
         when(gameStateSerializer.toJson(state)).thenReturn("{\"after\":true}");
@@ -194,6 +196,7 @@ class GameInstanceServiceTest {
         GameDefinitionVersion version = GameDefinitionVersion.publish(instance.gameDefinitionId(), 1, "{\"rules\":[]}");
         when(repository.findById(instance.id())).thenReturn(Optional.of(instance));
         when(gameDefinitionVersionService.getById(instance.gameDefinitionVersionId())).thenReturn(version);
+        when(ruleSetParser.parsePlayerActions(version.config())).thenReturn(Set.of("PLAYER_REQUESTED_NEXT_TURN"));
         when(ruleSetParser.parse(version.config())).thenReturn(List.of());
         when(gameStateSerializer.fromJson(instance.state())).thenReturn(state);
 
@@ -210,12 +213,28 @@ class GameInstanceServiceTest {
         GameDefinitionVersion version = GameDefinitionVersion.publish(instance.gameDefinitionId(), 1, "{\"rules\":[]}");
         when(repository.findById(instance.id())).thenReturn(Optional.of(instance));
         when(gameDefinitionVersionService.getById(instance.gameDefinitionVersionId())).thenReturn(version);
+        when(ruleSetParser.parsePlayerActions(version.config())).thenReturn(Set.of("CARD_PLAYED"));
         when(ruleSetParser.parse(version.config())).thenReturn(List.of());
         when(gameStateSerializer.fromJson(instance.state())).thenReturn(state);
 
         assertThatThrownBy(() -> service.applyAction(instance.id(), alice, "CARD_PLAYED", Map.of()))
                 .isInstanceOf(PlayerActionRejectedException.class);
         verify(repository, never()).save(any());
+    }
+
+    @Test
+    void applyAction_throwsUnknownPlayerAction_whenEventTypeNotDeclared() {
+        PlayerId alice = new PlayerId("alice");
+        GameInstance instance = GameInstance.create(UUID.randomUUID(), UUID.randomUUID(), "{\"before\":true}");
+        GameDefinitionVersion version = GameDefinitionVersion.publish(instance.gameDefinitionId(), 1, "{\"rules\":[]}");
+        when(repository.findById(instance.id())).thenReturn(Optional.of(instance));
+        when(gameDefinitionVersionService.getById(instance.gameDefinitionVersionId())).thenReturn(version);
+        when(ruleSetParser.parsePlayerActions(version.config())).thenReturn(Set.of("CARD_PLAYED"));
+
+        assertThatThrownBy(() -> service.applyAction(instance.id(), alice, "MADE_UP_ACTION", Map.of()))
+                .isInstanceOf(UnknownPlayerActionException.class);
+        verify(repository, never()).save(any());
+        verifyNoInteractions(gameStateSerializer);
     }
 
     @Test

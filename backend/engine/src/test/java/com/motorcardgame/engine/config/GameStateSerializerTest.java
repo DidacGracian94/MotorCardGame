@@ -65,6 +65,32 @@ class GameStateSerializerTest {
     }
 
     @Test
+    void roundTripsReversedDirection() {
+        GameState original = new GameState(List.of(ALICE, BOB));
+        original.reverseDirection();
+
+        GameState restored = serializer.fromJson(serializer.toJson(original));
+
+        assertEquals(-1, restored.direction());
+    }
+
+    @Test
+    void defaultsToForwardDirectionWhenFieldIsAbsent() {
+        String legacyStateWithoutDirection = """
+                {
+                  "players": [{ "id": "alice", "displayName": "Alice" }],
+                  "currentPlayerIndex": 0,
+                  "sharedZones": {},
+                  "perPlayerZones": {}
+                }
+                """;
+
+        GameState restored = serializer.fromJson(legacyStateWithoutDirection);
+
+        assertEquals(1, restored.direction());
+    }
+
+    @Test
     void malformedJsonIsInvalid() {
         assertThrows(InvalidGameDefinitionException.class, () -> serializer.fromJson("{not json"));
     }

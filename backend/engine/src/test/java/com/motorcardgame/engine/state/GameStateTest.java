@@ -16,6 +16,7 @@ class GameStateTest {
 
     private static final Player ALICE = new Player(new PlayerId("alice"), "Alice");
     private static final Player BOB = new Player(new PlayerId("bob"), "Bob");
+    private static final Player CAROL = new Player(new PlayerId("carol"), "Carol");
 
     @Test
     void currentPlayerIsFirstPlayerInitially() {
@@ -81,6 +82,54 @@ class GameStateTest {
         state.registerPlayerZone(ALICE.id(), "hand", aliceHand);
 
         assertSame(aliceHand, state.zoneOfCurrentPlayer("hand"));
+    }
+
+    @Test
+    void directionDefaultsToForward() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+
+        assertEquals(1, state.direction());
+    }
+
+    @Test
+    void reverseDirectionMakesAdvanceTurnGoBackwards() {
+        GameState state = new GameState(List.of(ALICE, BOB, CAROL));
+
+        state.reverseDirection();
+        state.advanceTurn();
+
+        assertEquals(CAROL, state.currentPlayer());
+        assertEquals(-1, state.direction());
+    }
+
+    @Test
+    void nextPlayerDoesNotMutateCurrentPlayer() {
+        GameState state = new GameState(List.of(ALICE, BOB, CAROL));
+
+        assertEquals(BOB, state.nextPlayer());
+        assertEquals(ALICE, state.currentPlayer());
+    }
+
+    @Test
+    void nextPlayerRespectsReversedDirection() {
+        GameState state = new GameState(List.of(ALICE, BOB, CAROL));
+
+        state.reverseDirection();
+
+        assertEquals(CAROL, state.nextPlayer());
+    }
+
+    @Test
+    void constructorWithDirectionRestoresReversedState() {
+        GameState state = new GameState(List.of(ALICE, BOB, CAROL), 0, -1);
+
+        assertEquals(-1, state.direction());
+        assertEquals(CAROL, state.nextPlayer());
+    }
+
+    @Test
+    void constructorRejectsInvalidDirection() {
+        assertThrows(IllegalArgumentException.class, () -> new GameState(List.of(ALICE, BOB), 0, 0));
     }
 
     @Test

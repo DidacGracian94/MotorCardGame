@@ -185,6 +185,7 @@ class GameInstanceControllerIntegrationTest {
 
     private static Map<String, Object> drawCardsOnRequestConfig() {
         return Map.of(
+                "playerActions", List.of("PLAYER_REQUESTED_DRAW"),
                 "zones", List.of(
                         Map.of("name", "deck", "ownership", "SHARED"),
                         Map.of("name", "hand", "ownership", "PER_PLAYER")),
@@ -258,6 +259,7 @@ class GameInstanceControllerIntegrationTest {
 
     private static Map<String, Object> cardPlayConfig(String dealtCardColor, int dealtCardNumber) {
         return Map.of(
+                "playerActions", List.of("CARD_PLAYED"),
                 "zones", List.of(
                         Map.of("name", "deck", "ownership", "SHARED"),
                         Map.of("name", "discard", "ownership", "SHARED"),
@@ -302,6 +304,60 @@ class GameInstanceControllerIntegrationTest {
     void applyAction_movesCardToDiscard_whenAttributeMatchesDiscardTop() throws Exception {
         UUID gameDefinitionId = createGameDefinition("uno-instancias-11");
         publishVersion(gameDefinitionId, cardPlayConfig("RED", 9));
+        String body = createInstance(gameDefinitionId, 1, ONE_PLAYER);
+        JsonNode createdState = objectMapper.readTree(body).get("state");
+        String instanceId = objectMapper.readTree(body).get("id").asText();
+        String aliceCardId = createdState.get("perPlayerZones").get("hand").get("alice").get(0).get("id").asText();
+
+        mockMvc.perform(post("/api/instances/{id}/actions", instanceId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                Map.of("playerId", "alice", "eventType", "CARD_PLAYED",
+                                        "payload", Map.of("cardId", aliceCardId)))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.state.perPlayerZones.hand.alice.length()").value(0))
+                .andExpect(jsonPath("$.state.sharedZones.discard[0].id").value(aliceCardId));
+    }
+
+    private static Map<String, Object> cardPlayConfigWithRuleNestedInCard(String dealtCardColor, int dealtCardNumber) {
+        return Map.of(
+                "playerActions", List.of("CARD_PLAYED"),
+                "zones", List.of(
+                        Map.of("name", "deck", "ownership", "SHARED"),
+                        Map.of("name", "discard", "ownership", "SHARED"),
+                        Map.of("name", "hand", "ownership", "PER_PLAYER")),
+                "cards", List.of(
+                        Map.of("id", "discard-seed", "zone", "discard", "count", 1,
+                                "attributes", Map.of("color", "RED", "number", 1)),
+                        Map.of("id", "dealt", "zone", "deck", "count", 1,
+                                "attributes", Map.of("color", dealtCardColor, "number", dealtCardNumber),
+                                "rules", List.of(Map.of(
+                                        "event", "CARD_PLAYED",
+                                        "condition", Map.of("type", "CARD_ATTRIBUTE_MATCHES_ZONE",
+                                                "cardZone", Map.of("name", "hand", "ownership", "PER_PLAYER"),
+                                                "attribute", "color",
+                                                "zone", Map.of("name", "discard", "ownership", "SHARED"),
+                                                "position", "TOP"),
+                                        "target", Map.of("type", "CURRENT_PLAYER"),
+                                        "action", Map.of(
+                                                "type", "MOVE_CARD",
+                                                "from", Map.of("name", "hand", "ownership", "PER_PLAYER"),
+                                                "to", Map.of("name", "discard", "ownership", "SHARED")))))),
+                "rules", List.of(
+                        Map.of(
+                                "event", "GAME_STARTED",
+                                "condition", Map.of("type", "AND", "conditions", List.of()),
+                                "target", Map.of("type", "ALL_PLAYERS"),
+                                "action", Map.of(
+                                        "type", "DRAW_CARDS", "count", 1,
+                                        "from", Map.of("name", "deck", "ownership", "SHARED"),
+                                        "to", Map.of("name", "hand", "ownership", "PER_PLAYER")))));
+    }
+
+    @Test
+    void applyAction_movesCardToDiscard_whenRuleIsNestedInsideCard() throws Exception {
+        UUID gameDefinitionId = createGameDefinition("uno-instancias-13");
+        publishVersion(gameDefinitionId, cardPlayConfigWithRuleNestedInCard("RED", 9));
         String body = createInstance(gameDefinitionId, 1, ONE_PLAYER);
         JsonNode createdState = objectMapper.readTree(body).get("state");
         String instanceId = objectMapper.readTree(body).get("id").asText();

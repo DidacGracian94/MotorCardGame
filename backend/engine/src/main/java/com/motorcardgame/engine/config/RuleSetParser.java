@@ -14,8 +14,10 @@ import com.motorcardgame.engine.rule.registry.TargetRegistry;
 import com.motorcardgame.engine.rule.registry.UnknownCapabilityException;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Convierte el JSON de {@code GameDefinitionVersion.config} en {@link Rule} reales, resolviendo
@@ -26,6 +28,12 @@ import java.util.Objects;
  * {@code GameDefinition} inválida — se traduce siempre a {@link InvalidGameDefinitionException}.
  */
 public final class RuleSetParser {
+
+    /**
+     * Único evento de ciclo de vida que dispara el propio motor/app (ver
+     * {@code GameInstanceService.create}) — no requiere estar declarado en {@code playerActions}.
+     */
+    public static final String GAME_STARTED_EVENT = "GAME_STARTED";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ActionRegistry actionRegistry;
@@ -40,18 +48,96 @@ public final class RuleSetParser {
     }
 
     public List<Rule> parse(String configJson) {
-        JsonNode root;
+        return parseRules(readRoot(configJson));
+    }
+
+    /**
+     * Lee el vocabulario de eventos de usuario que esta {@code GameDefinition} declara
+     * explícitamente (campo opcional {@code "playerActions"}). Ausente = ningún evento de usuario
+     * declarado — solo {@link #GAME_STARTED_EVENT} sería válido en {@link #validateEvents}.
+     */
+    public Set<String> parsePlayerActions(String configJson) {
+        return readPlayerActions(readRoot(configJson));
+    }
+
+    /**
+     * Valida que el evento de cada regla sea {@link #GAME_STARTED_EVENT} o esté declarado en
+     * {@code "playerActions"} — así una regla no puede quedar "muerta" por referenciar un nombre
+     * de evento que nadie va a disparar nunca, ni un jugador puede disparar una acción que el
+     * diseñador del juego no ha preparado. No se llama desde {@link #parse}: es una validación de
+     * negocio adicional (invocada explícitamente al publicar una versión), no un requisito
+     * estructural del JSON en sí.
+     */
+    public void validateEvents(String configJson) {
+        JsonNode root = readRoot(configJson);
+        Set<String> playerActions = readPlayerActions(root);
+        for (Rule rule : parseRules(root)) {
+            if (!isKnownEvent(rule.eventType(), playerActions)) {
+                throw new InvalidGameDefinitionException(
+                        "rule references unknown event \"" + rule.eventType()
+                                + "\": must be \"" + GAME_STARTED_EVENT + "\" or declared in \"playerActions\"");
+            }
+        }
+    }
+
+    private static boolean isKnownEvent(String eventType, Set<String> playerActions) {
+        return GAME_STARTED_EVENT.equals(eventType) || playerActions.contains(eventType);
+    }
+
+    private JsonNode readRoot(String configJson) {
         try {
-            root = objectMapper.readTree(configJson);
+            return objectMapper.readTree(configJson);
         } catch (JsonProcessingException e) {
             throw new InvalidGameDefinitionException("config is not valid JSON: " + e.getOriginalMessage(), e);
         }
+    }
+
+    private Set<String> readPlayerActions(JsonNode root) {
+        JsonNode node = root.path("playerActions");
+        if (!node.isArray()) {
+            return Set.of();
+        }
+        Set<String> actions = new LinkedHashSet<>();
+        for (JsonNode item : node) {
+            if (item.isTextual()) {
+                actions.add(item.asText());
+            }
+        }
+        return actions;
+    }
+
+    /**
+     * Junta las reglas del array global {@code "rules"} (obligatorio) con las que cuelgan de cada
+     * carta en {@code "cards[].rules"} (opcional) — una regla declarada dentro de una carta no es
+     * distinta en nada para el motor, solo vive en otro sitio del JSON para que el editor pueda
+     * mostrarla pegada a "su" carta en vez de en la lista plana.
+     */
+    private List<Rule> parseRules(JsonNode root) {
         JsonNode rulesNode = JsonNodes.requiredArray(root, "rules");
         List<Rule> rules = new ArrayList<>();
         for (JsonNode ruleNode : rulesNode) {
             rules.add(parseRule(ruleNode));
         }
+        rules.addAll(parseCardRules(root));
         return List.copyOf(rules);
+    }
+
+    private List<Rule> parseCardRules(JsonNode root) {
+        List<Rule> rules = new ArrayList<>();
+        JsonNode cardsNode = root.path("cards");
+        if (!cardsNode.isArray()) {
+            return rules;
+        }
+        for (JsonNode cardNode : cardsNode) {
+            JsonNode cardRulesNode = cardNode.path("rules");
+            if (!cardRulesNode.isArray()) {
+                continue;
+            }
+            for (JsonNode ruleNode : cardRulesNode) {
+                rules.add(parseRule(ruleNode));
+            }
+        }
+        return rules;
     }
 
     private Rule parseRule(JsonNode node) {
