@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.motorcardgame.app.gamedefinition.instance.domain.GameInstance;
+import com.motorcardgame.app.gamedefinition.instance.web.GameStateVisibility;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -15,13 +16,19 @@ public record GameInstanceResponse(
         Instant createdAt,
         Instant endedAt) {
 
-    public static GameInstanceResponse from(GameInstance instance, ObjectMapper objectMapper)
+    /**
+     * @param viewerPlayerId jugador para el que se filtra el estado (su mano se ve completa, las
+     *     demás quedan como {@code hiddenCount}); {@code null} = vista de espectador (todas
+     *     ocultas).
+     */
+    public static GameInstanceResponse from(GameInstance instance, ObjectMapper objectMapper, String viewerPlayerId)
             throws JsonProcessingException {
+        JsonNode fullState = objectMapper.readTree(instance.state());
         return new GameInstanceResponse(
                 instance.id(),
                 instance.gameDefinitionId(),
                 instance.gameDefinitionVersionId(),
-                objectMapper.readTree(instance.state()),
+                GameStateVisibility.forViewer(fullState, viewerPlayerId),
                 instance.createdAt(),
                 instance.endedAt());
     }

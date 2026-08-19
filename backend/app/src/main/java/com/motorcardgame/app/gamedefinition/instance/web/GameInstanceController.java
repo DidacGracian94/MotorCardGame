@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -35,13 +36,15 @@ public class GameInstanceController {
 
     @PostMapping
     public ResponseEntity<GameInstanceResponse> create(
-            @PathVariable UUID gameDefinitionId, @Valid @RequestBody CreateGameInstanceRequest request)
+            @PathVariable UUID gameDefinitionId,
+            @Valid @RequestBody CreateGameInstanceRequest request,
+            @RequestParam(required = false) String asPlayer)
             throws JsonProcessingException {
         List<Player> players = request.players().stream()
                 .map(p -> new Player(new PlayerId(p.id()), p.displayName()))
                 .toList();
         GameInstance created = gameInstanceService.create(gameDefinitionId, request.versionNumber(), players);
-        GameInstanceResponse body = GameInstanceResponse.from(created, objectMapper);
+        GameInstanceResponse body = GameInstanceResponse.from(created, objectMapper, asPlayer);
         return ResponseEntity.created(URI.create("/api/instances/" + body.id())).body(body);
     }
 
@@ -49,7 +52,7 @@ public class GameInstanceController {
     public List<GameInstanceResponse> listAll(@PathVariable UUID gameDefinitionId) throws JsonProcessingException {
         List<GameInstanceResponse> responses = new ArrayList<>();
         for (GameInstance instance : gameInstanceService.listByGameDefinition(gameDefinitionId)) {
-            responses.add(GameInstanceResponse.from(instance, objectMapper));
+            responses.add(GameInstanceResponse.from(instance, objectMapper, null));
         }
         return responses;
     }

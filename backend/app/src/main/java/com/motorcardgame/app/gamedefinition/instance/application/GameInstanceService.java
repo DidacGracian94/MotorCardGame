@@ -17,6 +17,7 @@ import com.motorcardgame.engine.state.PlayerId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,7 @@ public class GameInstanceService {
     private final RuleSetParser ruleSetParser;
     private final GameSetupParser gameSetupParser;
     private final GameStateSerializer gameStateSerializer;
+    private final ApplicationEventPublisher eventPublisher;
 
     public GameInstanceService(
             GameInstanceRepository repository,
@@ -36,13 +38,15 @@ public class GameInstanceService {
             GameDefinitionVersionService gameDefinitionVersionService,
             RuleSetParser ruleSetParser,
             GameSetupParser gameSetupParser,
-            GameStateSerializer gameStateSerializer) {
+            GameStateSerializer gameStateSerializer,
+            ApplicationEventPublisher eventPublisher) {
         this.repository = repository;
         this.gameDefinitionService = gameDefinitionService;
         this.gameDefinitionVersionService = gameDefinitionVersionService;
         this.ruleSetParser = ruleSetParser;
         this.gameSetupParser = gameSetupParser;
         this.gameStateSerializer = gameStateSerializer;
+        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -59,7 +63,9 @@ public class GameInstanceService {
         GameState state = gameSetupParser.buildInitialState(version.config(), players);
         new RuleEngine(rules).handle(Event.of("GAME_STARTED"), state);
         GameInstance instance = GameInstance.create(gameDefinitionId, version.id(), gameStateSerializer.toJson(state));
-        return repository.save(instance);
+        GameInstance saved = repository.save(instance);
+        eventPublisher.publishEvent(new GameInstanceUpdatedEvent(saved.id()));
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -95,7 +101,9 @@ public class GameInstanceService {
             throw new PlayerActionRejectedException(instanceId, actingPlayerId, eventType);
         }
 
-        return repository.save(instance.withState(gameStateSerializer.toJson(state)));
+        GameInstance saved = repository.save(instance.withState(gameStateSerializer.toJson(state)));
+        eventPublisher.publishEvent(new GameInstanceUpdatedEvent(saved.id()));
+        return saved;
     }
 
     @Transactional(readOnly = true)

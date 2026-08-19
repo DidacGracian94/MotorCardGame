@@ -60,6 +60,24 @@ export const api = {
   capabilities: {
     list: () => apiCall<CapabilitiesDto>('/capabilities'),
   },
+  gameInstances: {
+    create: (gameDefinitionId: string, data: CreateGameInstanceRequest, asPlayer?: string) =>
+      apiCall<GameInstanceDto>(
+        `/game-definitions/${gameDefinitionId}/instances${asPlayerQuery(asPlayer)}`,
+        { method: 'POST', body: JSON.stringify(data) }
+      ),
+    get: (instanceId: string, asPlayer?: string) =>
+      apiCall<GameInstanceDto>(`/instances/${instanceId}${asPlayerQuery(asPlayer)}`),
+    applyAction: (instanceId: string, data: PlayerActionRequest, asPlayer?: string) =>
+      apiCall<GameInstanceDto>(
+        `/instances/${instanceId}/actions${asPlayerQuery(asPlayer)}`,
+        { method: 'POST', body: JSON.stringify(data) }
+      ),
+  },
+}
+
+function asPlayerQuery(asPlayer?: string): string {
+  return asPlayer ? `?asPlayer=${encodeURIComponent(asPlayer)}` : ''
 }
 
 export interface GameDefinitionDto {
@@ -117,4 +135,44 @@ export interface CapabilitiesDto {
   actions: CapabilityDto[]
   conditions: CapabilityDto[]
   targets: CapabilityDto[]
+}
+
+export interface CardDto {
+  id: string
+  attributes: Record<string, unknown>
+}
+
+export type HiddenHandDto = { hiddenCount: number }
+
+export interface GameInstancePlayerDto {
+  id: string
+  displayName: string
+}
+
+export interface GameInstanceStateDto {
+  players: GameInstancePlayerDto[]
+  currentPlayerIndex: number
+  direction: number
+  sharedZones: Record<string, CardDto[]>
+  perPlayerZones: Record<string, Record<string, CardDto[] | HiddenHandDto>>
+}
+
+export interface GameInstanceDto {
+  id: string
+  gameDefinitionId: string
+  gameDefinitionVersionId: string
+  state: GameInstanceStateDto
+  createdAt: string
+  endedAt: string | null
+}
+
+export interface CreateGameInstanceRequest {
+  versionNumber: number
+  players: GameInstancePlayerDto[]
+}
+
+export interface PlayerActionRequest {
+  playerId: string
+  eventType: string
+  payload?: Record<string, unknown>
 }

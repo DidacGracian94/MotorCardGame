@@ -40,10 +40,11 @@ export function useRenameGameDefinition() {
   })
 }
 
-export function useGameDefinitionVersions(gameDefinitionId: string) {
+export function useGameDefinitionVersions(gameDefinitionId: string, enabled = true) {
   return useQuery({
     queryKey: GAME_DEFINITION_VERSIONS_KEY(gameDefinitionId),
     queryFn: () => api.gameDefinitions.versions.list(gameDefinitionId),
+    enabled: enabled && gameDefinitionId !== '',
   })
 }
 

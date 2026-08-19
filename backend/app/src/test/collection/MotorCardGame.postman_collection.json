@@ -252,10 +252,12 @@
               "raw": "{\n  \"versionNumber\": {{versionNumber}},\n  \"players\": [\n    { \"id\": \"alice\", \"displayName\": \"Alice\" },\n    { \"id\": \"bob\", \"displayName\": \"Bob\" }\n  ]\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/instances",
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/instances?asPlayer=alice",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "instances"]
-            }
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "instances"],
+              "query": [{ "key": "asPlayer", "value": "alice" }]
+            },
+            "description": "asPlayer=alice: vista propia de Alice tras crear la partida (su mano completa, la de Bob como hiddenCount). Sin este parámetro la respuesta es de espectador (ambas manos ocultas)."
           }
         },
         {
@@ -274,10 +276,12 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/instances/{{gameInstanceId}}",
+              "raw": "{{baseUrl}}/api/instances/{{gameInstanceId}}?asPlayer=alice",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "instances", "{{gameInstanceId}}"]
-            }
+              "path": ["api", "instances", "{{gameInstanceId}}"],
+              "query": [{ "key": "asPlayer", "value": "alice" }]
+            },
+            "description": "asPlayer es opcional; sin él, la respuesta es de espectador (todas las manos ocultas como hiddenCount)."
           }
         },
         {

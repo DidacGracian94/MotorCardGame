@@ -8,9 +8,10 @@ interface Props {
   versions: GameDefinitionVersionDto[]
   catalogs: CapabilitiesDto
   onEditAsNewVersion: (versionNumber: number) => void
+  onCreateInstance: (versionNumber: number) => void
 }
 
-export default function VersionsTable({ versions, catalogs, onEditAsNewVersion }: Props) {
+export default function VersionsTable({ versions, catalogs, onEditAsNewVersion, onCreateInstance }: Props) {
   const { t } = useTranslation()
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -58,7 +59,13 @@ export default function VersionsTable({ versions, catalogs, onEditAsNewVersion }
                   <td className="px-6 py-4 text-sm text-slate-600">
                     {version.publishedAt ? formatDate(version.publishedAt) : '—'}
                   </td>
-                  <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-6 py-4 text-right space-x-4" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => onCreateInstance(version.versionNumber)}
+                      className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                    >
+                      {t('instance.createButton')}
+                    </button>
                     <button
                       onClick={() => onEditAsNewVersion(version.versionNumber)}
                       className="text-amber-600 hover:text-amber-700 font-medium text-sm"

@@ -4,12 +4,16 @@ import { useTranslation } from '@/i18n/LanguageContext'
 import GameDefinitionsPage from '@/pages/GameDefinitionsPage'
 import VersionsPage from '@/pages/VersionsPage'
 import GameDefinitionEditorPage from '@/pages/GameDefinitionEditorPage'
+import CreateInstancePage from '@/pages/CreateInstancePage'
+import GameInstancePage from '@/pages/GameInstancePage'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export type PageState =
   | { type: 'list' }
   | { type: 'versions'; gameDefinitionId: string }
   | { type: 'editor'; gameDefinitionId: string; sourceVersionNumber?: number }
+  | { type: 'createInstance'; gameDefinitionId: string; versionNumber: number }
+  | { type: 'instance'; instanceId: string; viewerPlayerId: string | null }
 
 function App() {
   const [page, setPage] = useState<PageState>({ type: 'list' })
@@ -50,6 +54,9 @@ function App() {
               sourceVersionNumber: versionNumber,
             })
           }
+          onCreateInstance={(versionNumber) =>
+            setPage({ type: 'createInstance', gameDefinitionId: page.gameDefinitionId, versionNumber })
+          }
         />
       )}
       {page.type === 'editor' && (
@@ -57,6 +64,23 @@ function App() {
           gameDefinitionId={page.gameDefinitionId}
           sourceVersionNumber={page.sourceVersionNumber}
           onBack={() => setPage({ type: 'versions', gameDefinitionId: page.gameDefinitionId })}
+        />
+      )}
+      {page.type === 'createInstance' && (
+        <CreateInstancePage
+          gameDefinitionId={page.gameDefinitionId}
+          versionNumber={page.versionNumber}
+          onBack={() => setPage({ type: 'versions', gameDefinitionId: page.gameDefinitionId })}
+          onEnterGame={(instanceId, viewerPlayerId) =>
+            setPage({ type: 'instance', instanceId, viewerPlayerId })
+          }
+        />
+      )}
+      {page.type === 'instance' && (
+        <GameInstancePage
+          instanceId={page.instanceId}
+          viewerPlayerId={page.viewerPlayerId}
+          onBack={() => setPage({ type: 'list' })}
         />
       )}
     </div>

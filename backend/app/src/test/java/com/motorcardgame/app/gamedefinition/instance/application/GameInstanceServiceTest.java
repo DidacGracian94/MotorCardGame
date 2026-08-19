@@ -37,6 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 @ExtendWith(MockitoExtension.class)
 class GameInstanceServiceTest {
@@ -61,13 +62,16 @@ class GameInstanceServiceTest {
     @Mock
     private GameStateSerializer gameStateSerializer;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private GameInstanceService service;
 
     @BeforeEach
     void setUp() {
         service = new GameInstanceService(
                 repository, gameDefinitionService, gameDefinitionVersionService,
-                ruleSetParser, gameSetupParser, gameStateSerializer);
+                ruleSetParser, gameSetupParser, gameStateSerializer, eventPublisher);
     }
 
     @Test

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -29,16 +30,20 @@ public class InstanceController {
     }
 
     @GetMapping
-    public GameInstanceResponse getById(@PathVariable UUID instanceId) throws JsonProcessingException {
-        return GameInstanceResponse.from(gameInstanceService.getById(instanceId), objectMapper);
+    public GameInstanceResponse getById(@PathVariable UUID instanceId, @RequestParam(required = false) String asPlayer)
+            throws JsonProcessingException {
+        return GameInstanceResponse.from(gameInstanceService.getById(instanceId), objectMapper, asPlayer);
     }
 
     @PostMapping("/actions")
     public GameInstanceResponse applyAction(
-            @PathVariable UUID instanceId, @Valid @RequestBody PlayerActionRequest request)
+            @PathVariable UUID instanceId,
+            @Valid @RequestBody PlayerActionRequest request,
+            @RequestParam(required = false) String asPlayer)
             throws JsonProcessingException {
         GameInstance updated = gameInstanceService.applyAction(
                 instanceId, new PlayerId(request.playerId()), request.eventType(), request.payload());
-        return GameInstanceResponse.from(updated, objectMapper);
+        String viewerPlayerId = asPlayer != null ? asPlayer : request.playerId();
+        return GameInstanceResponse.from(updated, objectMapper, viewerPlayerId);
     }
 }

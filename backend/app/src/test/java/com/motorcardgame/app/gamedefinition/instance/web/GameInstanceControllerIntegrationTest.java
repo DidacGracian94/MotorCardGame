@@ -61,13 +61,28 @@ class GameInstanceControllerIntegrationTest {
     }
 
     private String createInstance(UUID gameDefinitionId, int versionNumber, Object players) throws Exception {
-        return mockMvc.perform(post("/api/game-definitions/{id}/instances", gameDefinitionId)
+        return createInstance(gameDefinitionId, versionNumber, players, null);
+    }
+
+    private String createInstance(UUID gameDefinitionId, int versionNumber, Object players, String asPlayer)
+            throws Exception {
+        String query = asPlayer == null ? "" : "?asPlayer=" + asPlayer;
+        return mockMvc.perform(post("/api/game-definitions/{id}/instances" + query, gameDefinitionId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Map.of("versionNumber", versionNumber, "players", players))))
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
+    }
+
+    private JsonNode getInstanceAs(String instanceId, String asPlayer) throws Exception {
+        String body = mockMvc.perform(get("/api/instances/{id}?asPlayer=" + asPlayer, instanceId))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return objectMapper.readTree(body).get("state");
     }
 
     @Test
@@ -136,11 +151,14 @@ class GameInstanceControllerIntegrationTest {
                 Map.of("id", "alice", "displayName", "Alice"), Map.of("id", "bob", "displayName", "Bob"));
 
         String body = createInstance(gameDefinitionId, 1, players);
-        JsonNode state = objectMapper.readTree(body).get("state");
+        String instanceId = objectMapper.readTree(body).get("id").asText();
 
-        assertHandSize(state, "alice", 3);
-        assertHandSize(state, "bob", 3);
-        assertEquals(4, state.get("sharedZones").get("deck").size());
+        JsonNode aliceState = getInstanceAs(instanceId, "alice");
+        JsonNode bobState = getInstanceAs(instanceId, "bob");
+
+        assertHandSize(aliceState, "alice", 3);
+        assertHandSize(bobState, "bob", 3);
+        assertEquals(4, aliceState.get("sharedZones").get("deck").size());
     }
 
     private static void assertHandSize(JsonNode state, String playerId, int expectedSize) {
@@ -304,7 +322,7 @@ class GameInstanceControllerIntegrationTest {
     void applyAction_movesCardToDiscard_whenAttributeMatchesDiscardTop() throws Exception {
         UUID gameDefinitionId = createGameDefinition("uno-instancias-11");
         publishVersion(gameDefinitionId, cardPlayConfig("RED", 9));
-        String body = createInstance(gameDefinitionId, 1, ONE_PLAYER);
+        String body = createInstance(gameDefinitionId, 1, ONE_PLAYER, "alice");
         JsonNode createdState = objectMapper.readTree(body).get("state");
         String instanceId = objectMapper.readTree(body).get("id").asText();
         String aliceCardId = createdState.get("perPlayerZones").get("hand").get("alice").get(0).get("id").asText();
@@ -358,7 +376,7 @@ class GameInstanceControllerIntegrationTest {
     void applyAction_movesCardToDiscard_whenRuleIsNestedInsideCard() throws Exception {
         UUID gameDefinitionId = createGameDefinition("uno-instancias-13");
         publishVersion(gameDefinitionId, cardPlayConfigWithRuleNestedInCard("RED", 9));
-        String body = createInstance(gameDefinitionId, 1, ONE_PLAYER);
+        String body = createInstance(gameDefinitionId, 1, ONE_PLAYER, "alice");
         JsonNode createdState = objectMapper.readTree(body).get("state");
         String instanceId = objectMapper.readTree(body).get("id").asText();
         String aliceCardId = createdState.get("perPlayerZones").get("hand").get("alice").get(0).get("id").asText();
@@ -377,7 +395,7 @@ class GameInstanceControllerIntegrationTest {
     void applyAction_returnsUnprocessableEntity_whenCardMatchesNeitherAttribute() throws Exception {
         UUID gameDefinitionId = createGameDefinition("uno-instancias-12");
         publishVersion(gameDefinitionId, cardPlayConfig("BLUE", 2));
-        String body = createInstance(gameDefinitionId, 1, ONE_PLAYER);
+        String body = createInstance(gameDefinitionId, 1, ONE_PLAYER, "alice");
         JsonNode createdState = objectMapper.readTree(body).get("state");
         String instanceId = objectMapper.readTree(body).get("id").asText();
         String aliceCardId = createdState.get("perPlayerZones").get("hand").get("alice").get(0).get("id").asText();
@@ -389,7 +407,7 @@ class GameInstanceControllerIntegrationTest {
                                         "payload", Map.of("cardId", aliceCardId)))))
                 .andExpect(status().isUnprocessableEntity());
 
-        mockMvc.perform(get("/api/instances/{id}", instanceId))
+        mockMvc.perform(get("/api/instances/{id}?asPlayer=alice", instanceId))
                 .andExpect(jsonPath("$.state.perPlayerZones.hand.alice.length()").value(1))
                 .andExpect(jsonPath("$.state.sharedZones.discard.length()").value(1));
     }

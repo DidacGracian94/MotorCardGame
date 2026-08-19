@@ -8,6 +8,7 @@ interface Props {
   onBack: () => void
   onNewVersion: () => void
   onEditAsNewVersion: (versionNumber: number) => void
+  onCreateInstance: (versionNumber: number) => void
 }
 
 export default function VersionsPage({
@@ -15,6 +16,7 @@ export default function VersionsPage({
   onBack,
   onNewVersion,
   onEditAsNewVersion,
+  onCreateInstance,
 }: Props) {
   const { data: definitions } = useGameDefinitions()
   const { data: versions, isLoading } = useGameDefinitionVersions(gameDefinitionId)
@@ -56,7 +58,12 @@ export default function VersionsPage({
           <p className="text-slate-600">{t('versions.empty')}</p>
         </div>
       ) : catalogs ? (
-        <VersionsTable versions={versions} catalogs={catalogs} onEditAsNewVersion={onEditAsNewVersion} />
+        <VersionsTable
+          versions={versions}
+          catalogs={catalogs}
+          onEditAsNewVersion={onEditAsNewVersion}
+          onCreateInstance={onCreateInstance}
+        />
       ) : null}
     </div>
   )
