@@ -58,6 +58,17 @@ public final class JsonNodes {
         return value.asInt();
     }
 
+    public static String optionalText(JsonNode node, String field, String defaultValue) {
+        JsonNode value = node.path(field);
+        if (value.isMissingNode() || value.isNull()) {
+            return defaultValue;
+        }
+        if (!value.isTextual()) {
+            throw new InvalidGameDefinitionException("field \"" + field + "\" must be text: " + node);
+        }
+        return value.asText();
+    }
+
     /**
      * Convierte un nodo escalar (texto, booleano o entero) a su equivalente Java. Lo usan tanto
      * la lectura de {@code CARD_ATTRIBUTE_EQUALS} como la de atributos de carta en

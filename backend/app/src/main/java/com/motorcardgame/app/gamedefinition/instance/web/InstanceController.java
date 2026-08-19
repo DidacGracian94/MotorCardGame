@@ -1,7 +1,6 @@
 package com.motorcardgame.app.gamedefinition.instance.web;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.motorcardgame.app.gamedefinition.instance.application.GameInstanceService;
 import com.motorcardgame.app.gamedefinition.instance.domain.GameInstance;
 import com.motorcardgame.app.gamedefinition.instance.web.dto.GameInstanceResponse;
@@ -22,17 +21,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class InstanceController {
 
     private final GameInstanceService gameInstanceService;
-    private final ObjectMapper objectMapper;
+    private final GameInstanceResponseFactory responseFactory;
 
-    public InstanceController(GameInstanceService gameInstanceService, ObjectMapper objectMapper) {
+    public InstanceController(GameInstanceService gameInstanceService, GameInstanceResponseFactory responseFactory) {
         this.gameInstanceService = gameInstanceService;
-        this.objectMapper = objectMapper;
+        this.responseFactory = responseFactory;
     }
 
     @GetMapping
     public GameInstanceResponse getById(@PathVariable UUID instanceId, @RequestParam(required = false) String asPlayer)
             throws JsonProcessingException {
-        return GameInstanceResponse.from(gameInstanceService.getById(instanceId), objectMapper, asPlayer);
+        return responseFactory.forViewer(gameInstanceService.getById(instanceId), asPlayer);
     }
 
     @PostMapping("/actions")
@@ -44,6 +43,6 @@ public class InstanceController {
         GameInstance updated = gameInstanceService.applyAction(
                 instanceId, new PlayerId(request.playerId()), request.eventType(), request.payload());
         String viewerPlayerId = asPlayer != null ? asPlayer : request.playerId();
-        return GameInstanceResponse.from(updated, objectMapper, viewerPlayerId);
+        return responseFactory.forViewer(updated, viewerPlayerId);
     }
 }

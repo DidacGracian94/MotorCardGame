@@ -1,15 +1,16 @@
-import { CardDto, HiddenHandDto } from '@/api/client'
+import { CardDto, HiddenZoneDto } from '@/api/client'
 import { useTranslation } from '@/i18n/LanguageContext'
+import HiddenPile from '@/components/instance/HiddenPile'
 
 interface Props {
   playerDisplayName: string
-  hand: CardDto[] | HiddenHandDto
+  hand: CardDto[] | HiddenZoneDto
   isOwn: boolean
   selectedCardId: string | null
   onSelectCard: (cardId: string) => void
 }
 
-function isHidden(hand: CardDto[] | HiddenHandDto): hand is HiddenHandDto {
+function isHidden(hand: CardDto[] | HiddenZoneDto): hand is HiddenZoneDto {
   return !Array.isArray(hand)
 }
 
@@ -30,16 +31,7 @@ export default function HandView({
           : t('play.opponentHandTitle', { player: playerDisplayName })}
       </h3>
       {isHidden(hand) ? (
-        <div>
-          <div className="flex gap-1 flex-wrap items-center mb-1" aria-hidden>
-            {Array.from({ length: hand.hiddenCount }).map((_, i) => (
-              <div key={i} className="w-10 h-14 rounded-md bg-slate-700 border border-slate-800" />
-            ))}
-          </div>
-          <p className="text-slate-500 text-sm">
-            {hand.hiddenCount === 0 ? t('play.emptyZone') : t('play.hiddenCards', { count: hand.hiddenCount })}
-          </p>
-        </div>
+        <HiddenPile count={hand.hiddenCount} />
       ) : (
         <div className="flex gap-2 flex-wrap">
           {hand.length === 0 && <p className="text-slate-500 text-sm">{t('play.emptyZone')}</p>}

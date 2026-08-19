@@ -142,7 +142,10 @@ export interface CardDto {
   attributes: Record<string, unknown>
 }
 
-export type HiddenHandDto = { hiddenCount: number }
+// Objeto (no un array ni un número desnudo), para no confundir "zona vacía y visible" ([]) con
+// "zona vacía y oculta". Ver GameStateVisibility en el backend — mismo shape para sharedZones
+// (p.ej. un mazo boca abajo, visibility HIDDEN) y perPlayerZones (p.ej. la mano de otro jugador).
+export type HiddenZoneDto = { hiddenCount: number }
 
 export interface GameInstancePlayerDto {
   id: string
@@ -153,8 +156,8 @@ export interface GameInstanceStateDto {
   players: GameInstancePlayerDto[]
   currentPlayerIndex: number
   direction: number
-  sharedZones: Record<string, CardDto[]>
-  perPlayerZones: Record<string, Record<string, CardDto[] | HiddenHandDto>>
+  sharedZones: Record<string, CardDto[] | HiddenZoneDto>
+  perPlayerZones: Record<string, Record<string, CardDto[] | HiddenZoneDto>>
 }
 
 export interface GameInstanceDto {

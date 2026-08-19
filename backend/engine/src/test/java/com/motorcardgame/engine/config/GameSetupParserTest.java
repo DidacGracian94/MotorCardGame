@@ -5,9 +5,11 @@ import com.motorcardgame.engine.state.GameState;
 import com.motorcardgame.engine.state.LinearZone;
 import com.motorcardgame.engine.state.Player;
 import com.motorcardgame.engine.state.PlayerId;
+import com.motorcardgame.engine.state.ZoneVisibility;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -118,5 +120,61 @@ class GameSetupParserTest {
         GameSetupParser parser = new GameSetupParser();
 
         assertThrows(InvalidGameDefinitionException.class, () -> parser.buildInitialState("{not json", List.of(ALICE)));
+    }
+
+    @Test
+    void zoneVisibilityDefaultsByOwnership_whenNotDeclared() {
+        GameSetupParser parser = new GameSetupParser();
+        String config = """
+                {
+                  "zones": [
+                    { "name": "deck", "ownership": "SHARED" },
+                    { "name": "hand", "ownership": "PER_PLAYER" }
+                  ]
+                }
+                """;
+
+        Map<String, ZoneVisibility> visibility = parser.parseZoneVisibility(config);
+
+        assertEquals(ZoneVisibility.PUBLIC, visibility.get("deck"));
+        assertEquals(ZoneVisibility.OWNER_ONLY, visibility.get("hand"));
+    }
+
+    @Test
+    void zoneVisibilityHonorsExplicitDeclaration() {
+        GameSetupParser parser = new GameSetupParser();
+        String config = """
+                {
+                  "zones": [
+                    { "name": "deck", "ownership": "SHARED", "visibility": "HIDDEN" },
+                    { "name": "hand", "ownership": "PER_PLAYER", "visibility": "ALL_BUT_OWNER" }
+                  ]
+                }
+                """;
+
+        Map<String, ZoneVisibility> visibility = parser.parseZoneVisibility(config);
+
+        assertEquals(ZoneVisibility.HIDDEN, visibility.get("deck"));
+        assertEquals(ZoneVisibility.ALL_BUT_OWNER, visibility.get("hand"));
+    }
+
+    @Test
+    void zoneVisibilityRejectsOwnerScopedValueOnSharedZone() {
+        GameSetupParser parser = new GameSetupParser();
+        String config = """
+                { "zones": [ { "name": "deck", "ownership": "SHARED", "visibility": "OWNER_ONLY" } ] }
+                """;
+
+        assertThrows(InvalidGameDefinitionException.class, () -> parser.parseZoneVisibility(config));
+    }
+
+    @Test
+    void zoneVisibilityRejectsUnknownValue() {
+        GameSetupParser parser = new GameSetupParser();
+        String config = """
+                { "zones": [ { "name": "deck", "ownership": "SHARED", "visibility": "INVISIBLE" } ] }
+                """;
+
+        assertThrows(InvalidGameDefinitionException.class, () -> parser.parseZoneVisibility(config));
     }
 }

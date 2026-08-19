@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.motorcardgame.app.gamedefinition.instance.domain.GameInstance;
+import com.motorcardgame.app.gamedefinition.instance.web.GameInstanceResponseFactory;
 import com.motorcardgame.app.gamedefinition.instance.web.dto.GameInstanceResponse;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
@@ -15,21 +16,24 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * debe ver un estado que luego se revierte), empuja el {@code GameInstance} actualizado por
  * WebSocket: la vista de espectador a {@code /topic/games/{id}/public} y, además, la vista propia
  * de cada jugador declarado en {@code state.players} a {@code /queue/games/{id}/private} (no-op
- * silencioso si ese jugador no está conectado). Reutiliza {@link GameInstanceResponse}, el mismo
- * DTO — con el mismo filtrado de {@code GameStateVisibility} — que ya usa la API REST.
+ * silencioso si ese jugador no está conectado). Reutiliza {@link GameInstanceResponseFactory}, el
+ * mismo camino — con el mismo filtrado de {@code GameStateVisibility} — que ya usa la API REST.
  */
 @Component
 public class GameInstanceRealtimePublisher {
 
     private final GameInstanceService gameInstanceService;
+    private final GameInstanceResponseFactory responseFactory;
     private final SimpMessagingTemplate messagingTemplate;
     private final ObjectMapper objectMapper;
 
     public GameInstanceRealtimePublisher(
             GameInstanceService gameInstanceService,
+            GameInstanceResponseFactory responseFactory,
             SimpMessagingTemplate messagingTemplate,
             ObjectMapper objectMapper) {
         this.gameInstanceService = gameInstanceService;
+        this.responseFactory = responseFactory;
         this.messagingTemplate = messagingTemplate;
         this.objectMapper = objectMapper;
     }
@@ -40,16 +44,14 @@ public class GameInstanceRealtimePublisher {
             GameInstance instance = gameInstanceService.getById(event.instanceId());
             JsonNode fullState = objectMapper.readTree(instance.state());
 
-            messagingTemplate.convertAndSend(
-                    "/topic/games/" + event.instanceId() + "/public",
-                    GameInstanceResponse.from(instance, objectMapper, null));
+            GameInstanceResponse publicResponse = responseFactory.forViewer(instance, null);
+            messagingTemplate.convertAndSend("/topic/games/" + event.instanceId() + "/public", publicResponse);
 
             for (JsonNode playerNode : fullState.path("players")) {
                 String playerId = playerNode.get("id").asText();
+                GameInstanceResponse privateResponse = responseFactory.forViewer(instance, playerId);
                 messagingTemplate.convertAndSendToUser(
-                        playerId,
-                        "/queue/games/" + event.instanceId() + "/private",
-                        GameInstanceResponse.from(instance, objectMapper, playerId));
+                        playerId, "/queue/games/" + event.instanceId() + "/private", privateResponse);
             }
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("failed to build realtime game instance payload", e);

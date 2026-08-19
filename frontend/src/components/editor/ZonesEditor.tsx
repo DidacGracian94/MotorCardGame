@@ -1,5 +1,5 @@
 import { useTranslation } from '@/i18n/LanguageContext'
-import { Ownership, ZoneConfig } from '@/types/config'
+import { Ownership, ZoneConfig, ZoneVisibility } from '@/types/config'
 
 interface Props {
   zones: ZoneConfig[]
@@ -7,10 +7,30 @@ interface Props {
   readOnly?: boolean
 }
 
+// OWNER_ONLY/ALL_BUT_OWNER solo tienen sentido con ownership PER_PLAYER (el motor los rechaza en
+// una zona SHARED) — cada ownership ofrece solo las opciones que el motor aceptará al guardar.
+const VISIBILITY_OPTIONS_BY_OWNERSHIP: Record<Ownership, ZoneVisibility[]> = {
+  SHARED: ['PUBLIC', 'HIDDEN'],
+  PER_PLAYER: ['OWNER_ONLY', 'HIDDEN', 'ALL_BUT_OWNER', 'PUBLIC'],
+}
+
 export default function ZonesEditor({ zones, onChange, readOnly = false }: Props) {
   const { t, tf } = useTranslation()
   const updateZone = (index: number, updates: Partial<ZoneConfig>) => {
     onChange(zones.map((zone, i) => (i === index ? { ...zone, ...updates } : zone)))
+  }
+
+  const updateOwnership = (index: number, ownership: Ownership) => {
+    onChange(
+      zones.map((zone, i) => {
+        if (i !== index) return zone
+        // Si la visibilidad actual ya no es válida para el nuevo ownership, vuelve al valor por
+        // defecto del motor (undefined) en vez de dejar una combinación que el motor rechazaría.
+        const visibilityStillValid =
+          !zone.visibility || VISIBILITY_OPTIONS_BY_OWNERSHIP[ownership].includes(zone.visibility)
+        return { ...zone, ownership, visibility: visibilityStillValid ? zone.visibility : undefined }
+      })
+    )
   }
 
   const removeZone = (index: number) => {
@@ -28,6 +48,7 @@ export default function ZonesEditor({ zones, onChange, readOnly = false }: Props
           <tr>
             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('common.name')}</th>
             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('editor.ownership')}</th>
+            <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('editor.visibility')}</th>
             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">{t('editor.shuffle')}</th>
             <th className="px-6 py-3 text-right text-sm font-semibold text-slate-900">{t('common.actions')}</th>
           </tr>
@@ -48,12 +69,31 @@ export default function ZonesEditor({ zones, onChange, readOnly = false }: Props
               <td className="px-6 py-4 text-sm">
                 <select
                   value={zone.ownership}
-                  onChange={(e) => updateZone(index, { ownership: e.target.value as Ownership })}
+                  onChange={(e) => updateOwnership(index, e.target.value as Ownership)}
                   disabled={readOnly}
                   className="px-2 py-1 border border-slate-300 rounded text-sm disabled:bg-slate-50 disabled:text-slate-600"
                 >
                   <option value="SHARED">{tf('enum.SHARED', 'SHARED')}</option>
                   <option value="PER_PLAYER">{tf('enum.PER_PLAYER', 'PER_PLAYER')}</option>
+                </select>
+              </td>
+              <td className="px-6 py-4 text-sm">
+                <select
+                  value={zone.visibility ?? ''}
+                  onChange={(e) =>
+                    updateZone(index, {
+                      visibility: e.target.value === '' ? undefined : (e.target.value as ZoneVisibility),
+                    })
+                  }
+                  disabled={readOnly}
+                  className="px-2 py-1 border border-slate-300 rounded text-sm disabled:bg-slate-50 disabled:text-slate-600"
+                >
+                  <option value="">{t('editor.visibilityDefault')}</option>
+                  {VISIBILITY_OPTIONS_BY_OWNERSHIP[zone.ownership].map((option) => (
+                    <option key={option} value={option}>
+                      {tf(`enum.${option}`, option)}
+                    </option>
+                  ))}
                 </select>
               </td>
               <td className="px-6 py-4 text-sm">

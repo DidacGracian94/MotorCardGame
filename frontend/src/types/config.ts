@@ -4,6 +4,12 @@ export const GAME_STARTED_EVENT = 'GAME_STARTED'
 
 export type Ownership = 'SHARED' | 'PER_PLAYER'
 
+// Quién puede ver el contenido de una zona — independiente de quién es su dueño (Ownership).
+// PUBLIC/HIDDEN valen para cualquier zona; OWNER_ONLY/ALL_BUT_OWNER solo tienen sentido en
+// PER_PLAYER (el motor rechaza esa combinación al parsear la config). Sin declarar, el motor usa
+// PUBLIC para SHARED y OWNER_ONLY para PER_PLAYER — el comportamiento de siempre.
+export type ZoneVisibility = 'PUBLIC' | 'HIDDEN' | 'OWNER_ONLY' | 'ALL_BUT_OWNER'
+
 export type ScalarType = 'string' | 'number' | 'boolean'
 
 export type ScalarValue = string | number | boolean
@@ -27,6 +33,7 @@ export interface ZoneConfig {
   name: string
   ownership: Ownership
   shuffle?: boolean
+  visibility?: ZoneVisibility
 }
 
 export interface CardTemplateConfig {

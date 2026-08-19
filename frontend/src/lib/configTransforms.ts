@@ -12,6 +12,7 @@ import {
   ScalarValue,
   ZoneConfig,
   ZoneRefValue,
+  ZoneVisibility,
 } from '@/types/config'
 
 export function createEmptyConfig(): GameConfig {
@@ -114,6 +115,12 @@ function parseCapabilityNode(raw: unknown): CapabilityNode {
   return { type, fields }
 }
 
+const ZONE_VISIBILITY_VALUES = new Set(['PUBLIC', 'HIDDEN', 'OWNER_ONLY', 'ALL_BUT_OWNER'])
+
+function isZoneVisibility(value: unknown): value is ZoneVisibility {
+  return typeof value === 'string' && ZONE_VISIBILITY_VALUES.has(value)
+}
+
 function parseZone(raw: unknown): ZoneConfig | null {
   if (!raw || typeof raw !== 'object') return null
   const obj = raw as Record<string, unknown>
@@ -122,6 +129,7 @@ function parseZone(raw: unknown): ZoneConfig | null {
     name: obj.name,
     ownership: obj.ownership as Ownership,
     shuffle: typeof obj.shuffle === 'boolean' ? obj.shuffle : undefined,
+    visibility: isZoneVisibility(obj.visibility) ? obj.visibility : undefined,
   }
 }
 

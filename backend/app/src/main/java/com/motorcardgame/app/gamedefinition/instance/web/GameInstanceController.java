@@ -1,7 +1,6 @@
 package com.motorcardgame.app.gamedefinition.instance.web;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.motorcardgame.app.gamedefinition.instance.application.GameInstanceService;
 import com.motorcardgame.app.gamedefinition.instance.domain.GameInstance;
 import com.motorcardgame.app.gamedefinition.instance.web.dto.CreateGameInstanceRequest;
@@ -27,11 +26,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class GameInstanceController {
 
     private final GameInstanceService gameInstanceService;
-    private final ObjectMapper objectMapper;
+    private final GameInstanceResponseFactory responseFactory;
 
-    public GameInstanceController(GameInstanceService gameInstanceService, ObjectMapper objectMapper) {
+    public GameInstanceController(GameInstanceService gameInstanceService, GameInstanceResponseFactory responseFactory) {
         this.gameInstanceService = gameInstanceService;
-        this.objectMapper = objectMapper;
+        this.responseFactory = responseFactory;
     }
 
     @PostMapping
@@ -44,7 +43,7 @@ public class GameInstanceController {
                 .map(p -> new Player(new PlayerId(p.id()), p.displayName()))
                 .toList();
         GameInstance created = gameInstanceService.create(gameDefinitionId, request.versionNumber(), players);
-        GameInstanceResponse body = GameInstanceResponse.from(created, objectMapper, asPlayer);
+        GameInstanceResponse body = responseFactory.forViewer(created, asPlayer);
         return ResponseEntity.created(URI.create("/api/instances/" + body.id())).body(body);
     }
 
@@ -52,7 +51,7 @@ public class GameInstanceController {
     public List<GameInstanceResponse> listAll(@PathVariable UUID gameDefinitionId) throws JsonProcessingException {
         List<GameInstanceResponse> responses = new ArrayList<>();
         for (GameInstance instance : gameInstanceService.listByGameDefinition(gameDefinitionId)) {
-            responses.add(GameInstanceResponse.from(instance, objectMapper, null));
+            responses.add(responseFactory.forViewer(instance, null));
         }
         return responses;
     }
