@@ -75,6 +75,27 @@ class CardCatalogTest {
         assertThrows(InvalidGameDefinitionException.class, () -> CardCatalog.parseByZone(cardsNode));
     }
 
+    @Test
+    void duplicateTemplateIdIsInvalid() throws Exception {
+        JsonNode cardsNode = readTree("""
+                [
+                  { "id": "red-1", "zone": "deck", "attributes": {} },
+                  { "id": "red-1", "zone": "discard", "attributes": {} }
+                ]
+                """);
+
+        assertThrows(InvalidGameDefinitionException.class, () -> CardCatalog.parseByZone(cardsNode));
+    }
+
+    @Test
+    void templateIdContainingHashIsInvalid() throws Exception {
+        JsonNode cardsNode = readTree("""
+                [ { "id": "wild#4", "zone": "deck", "attributes": {} } ]
+                """);
+
+        assertThrows(InvalidGameDefinitionException.class, () -> CardCatalog.parseByZone(cardsNode));
+    }
+
     private static JsonNode readTree(String json) throws Exception {
         return OBJECT_MAPPER.readTree(json);
     }

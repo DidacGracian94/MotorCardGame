@@ -154,7 +154,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"config\": {\n    \"playerActions\": [\"PLAYER_REQUESTED_DRAW\", \"CARD_PLAYED\", \"CARD_DISCARDED\"],\n    \"zones\": [\n      { \"name\": \"deck\", \"ownership\": \"SHARED\", \"shuffle\": false },\n      { \"name\": \"discard\", \"ownership\": \"SHARED\" },\n      { \"name\": \"graveyard\", \"ownership\": \"SHARED\" },\n      { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n    ],\n    \"cards\": [\n      { \"id\": \"red\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"RED\" } },\n      { \"id\": \"blue\", \"zone\": \"deck\", \"count\": 10, \"attributes\": { \"color\": \"BLUE\" } },\n      { \"id\": \"discard-seed\", \"zone\": \"discard\", \"count\": 1, \"attributes\": { \"color\": \"RED\" } },\n      { \"id\": \"graveyard-seed\", \"zone\": \"graveyard\", \"count\": 1, \"attributes\": { \"color\": \"BLUE\" } }\n    ],\n    \"rules\": [\n      {\n        \"event\": \"GAME_STARTED\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"ALL_PLAYERS\" },\n        \"action\": {\n          \"type\": \"REPEAT\",\n          \"times\": 7,\n          \"action\": {\n            \"type\": \"DRAW_CARDS\",\n            \"count\": 1,\n            \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n            \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n          }\n        }\n      },\n      {\n        \"event\": \"PLAYER_REQUESTED_DRAW\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"DRAW_CARDS\",\n          \"count\": 1,\n          \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n          \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n        }\n      },\n      {\n        \"event\": \"CARD_PLAYED\",\n        \"condition\": {\n          \"type\": \"CARD_ATTRIBUTE_MATCHES_ZONE\",\n          \"cardZone\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"attribute\": \"color\",\n          \"zone\": { \"name\": \"discard\", \"ownership\": \"SHARED\" },\n          \"position\": \"TOP\"\n        },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"MOVE_CARD\",\n          \"from\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"to\": { \"name\": \"discard\", \"ownership\": \"SHARED\" }\n        }\n      },\n      {\n        \"event\": \"CARD_DISCARDED\",\n        \"condition\": {\n          \"type\": \"CARD_ATTRIBUTE_MATCHES_ZONE\",\n          \"cardZone\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"attribute\": \"color\",\n          \"zone\": { \"name\": \"graveyard\", \"ownership\": \"SHARED\" },\n          \"position\": \"TOP\"\n        },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"MOVE_CARD\",\n          \"from\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"to\": { \"name\": \"graveyard\", \"ownership\": \"SHARED\" }\n        }\n      }\n    ]\n  }\n}"
+              "raw": "{\n  \"config\": {\n    \"playerActions\": [\"PLAYER_REQUESTED_DRAW\", \"CARD_PLAYED\", \"CARD_DISCARDED\"],\n    \"zones\": [\n      { \"name\": \"deck\", \"ownership\": \"SHARED\", \"shuffle\": false },\n      { \"name\": \"discard\", \"ownership\": \"SHARED\" },\n      { \"name\": \"graveyard\", \"ownership\": \"SHARED\" },\n      { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n    ],\n    \"cards\": [\n      { \"id\": \"red\", \"zone\": \"deck\", \"count\": 7, \"attributes\": { \"color\": \"RED\" } },\n      { \"id\": \"blue\", \"zone\": \"deck\", \"count\": 7, \"attributes\": { \"color\": \"BLUE\" } },\n      { \"id\": \"skip\", \"zone\": \"deck\", \"count\": 1, \"attributes\": { \"color\": \"RED\" }, \"rules\": [ { \"event\": \"CARD_PLAYED\", \"condition\": { \"type\": \"EVENT_CARD_IN_ZONE\", \"zone\": { \"name\": \"discard\", \"ownership\": \"SHARED\" } }, \"target\": { \"type\": \"CURRENT_PLAYER\" }, \"action\": { \"type\": \"NEXT_PLAYER\" } } ] },\n      { \"id\": \"discard-seed\", \"zone\": \"discard\", \"count\": 1, \"attributes\": { \"color\": \"RED\" } },\n      { \"id\": \"graveyard-seed\", \"zone\": \"graveyard\", \"count\": 1, \"attributes\": { \"color\": \"BLUE\" } }\n    ],\n    \"rules\": [\n      {\n        \"event\": \"GAME_STARTED\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"ALL_PLAYERS\" },\n        \"action\": {\n          \"type\": \"REPEAT\",\n          \"times\": 7,\n          \"action\": {\n            \"type\": \"DRAW_CARDS\",\n            \"count\": 1,\n            \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n            \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n          }\n        }\n      },\n      {\n        \"event\": \"PLAYER_REQUESTED_DRAW\",\n        \"condition\": { \"type\": \"AND\", \"conditions\": [] },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"DRAW_CARDS\",\n          \"count\": 1,\n          \"from\": { \"name\": \"deck\", \"ownership\": \"SHARED\" },\n          \"to\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" }\n        }\n      },\n      {\n        \"event\": \"CARD_PLAYED\",\n        \"condition\": {\n          \"type\": \"CARD_ATTRIBUTE_MATCHES_ZONE\",\n          \"cardZone\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"attribute\": \"color\",\n          \"zone\": { \"name\": \"discard\", \"ownership\": \"SHARED\" },\n          \"position\": \"TOP\"\n        },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"MOVE_CARD\",\n          \"from\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"to\": { \"name\": \"discard\", \"ownership\": \"SHARED\" }\n        }\n      },\n      {\n        \"event\": \"CARD_DISCARDED\",\n        \"condition\": {\n          \"type\": \"CARD_ATTRIBUTE_MATCHES_ZONE\",\n          \"cardZone\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"attribute\": \"color\",\n          \"zone\": { \"name\": \"graveyard\", \"ownership\": \"SHARED\" },\n          \"position\": \"TOP\"\n        },\n        \"target\": { \"type\": \"CURRENT_PLAYER\" },\n        \"action\": {\n          \"type\": \"MOVE_CARD\",\n          \"from\": { \"name\": \"hand\", \"ownership\": \"PER_PLAYER\" },\n          \"to\": { \"name\": \"graveyard\", \"ownership\": \"SHARED\" }\n        }\n      }\n    ]\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/versions",
@@ -336,7 +336,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "instances", "{{gameInstanceId}}", "actions"]
             },
-            "description": "El mazo no se baraja (shuffle:false) y tiene 10 cartas RED antes que las BLUE, así que las 7 cartas de Alice son todas RED — encajan por color con la carta RED ya puesta en discard, así que la jugada es legal (200)."
+            "description": "El mazo no se baraja (shuffle:false) y tiene 7 cartas RED antes que las BLUE, así que las 7 cartas de Alice son todas RED — encajan por color con la carta RED ya puesta en discard, así que la jugada es legal (200)."
           }
         },
         {
@@ -383,6 +383,67 @@
               "path": ["api", "instances", "{{gameInstanceId}}", "actions"]
             },
             "description": "El turno inicial es de Alice (primer jugador de la lista al crear la instancia) y PLAYER_REQUESTED_DRAW no avanza turno, así que Bob nunca puede actuar aquí (409)."
+          }
+        },
+        {
+          "name": "Apply player action - PLAYER_REQUESTED_DRAW (draws skip card)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('alice drew the skip card', () => pm.expect(body.state.perPlayerZones.hand.alice[0].id).to.eql('skip#1'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"alice\",\n  \"eventType\": \"PLAYER_REQUESTED_DRAW\",\n  \"payload\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/instances/{{gameInstanceId}}/actions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "instances", "{{gameInstanceId}}", "actions"]
+            },
+            "description": "Tras repartir 7 cartas a cada jugador (red#1..#7 a Alice, blue#1..#7 a Bob), la carta \"skip\" (count=1, id fijo \"skip#1\") queda justo encima del mazo — este robo la pone en la mano de Alice de forma determinista, sin depender de barajado, para poder jugarla en el siguiente request."
+          }
+        },
+        {
+          "name": "Apply player action - CARD_PLAYED (card-scoped skip effect)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('skip card moved to discard', () => pm.expect(body.state.sharedZones.discard[0].id).to.eql('skip#1'));",
+                  "pm.test('turn skipped to bob', () => pm.expect(body.state.currentPlayerIndex).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"playerId\": \"alice\",\n  \"eventType\": \"CARD_PLAYED\",\n  \"payload\": { \"cardId\": \"skip#1\" }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/instances/{{gameInstanceId}}/actions",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "instances", "{{gameInstanceId}}", "actions"]
+            },
+            "description": "La regla de \"skip\" vive en cards[].rules (ámbito solo a esta carta) y usa EVENT_CARD_IN_ZONE para añadir NEXT_PLAYER como efecto extra sin repetir la condición de legalidad ni mover la carta dos veces: la regla global (arriba, sin ámbito) ya la mueve a discard si es legal; esta solo se activa cuando eso ya ha ocurrido. Debe ejecutarse después de '[Error] Apply player action - 409 not player's turn', que depende de que el turno siga siendo de Alice hasta ese punto."
           }
         },
         {

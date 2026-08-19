@@ -17,7 +17,10 @@ interface Props {
   // GAME_STARTED), pero sigue operando sobre el mismo array completo por debajo — una regla que
   // cambia de evento simplemente pasa a aparecer en la otra vista, no se pierde.
   filter?: (rule: RuleConfig) => boolean
-  // Evento con el que nace una regla nueva añadida desde esta vista.
+  // Evento con el que nace una regla nueva añadida desde esta vista. Cuando se da, además fija el
+  // evento de toda regla de esta vista a ese valor (sin selector) — no tiene sentido ofrecer el
+  // catálogo de acciones de jugador como alternativa en una vista que es, por definición, de un
+  // único evento (p.ej. "reglas genéricas" = siempre GAME_STARTED).
   defaultEvent?: string
   readOnly?: boolean
 }
@@ -89,6 +92,7 @@ export default function RulesEditor({
           isOpen={openIndices.has(index)}
           onToggleOpen={() => toggleOpen(index)}
           readOnly={readOnly}
+          fixedEvent={defaultEvent}
         />
       ))}
       {!readOnly && (

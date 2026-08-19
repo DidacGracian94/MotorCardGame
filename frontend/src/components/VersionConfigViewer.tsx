@@ -82,6 +82,13 @@ export default function VersionConfigViewer({ config, catalogs }: Props) {
             <ZonesEditor zones={parsedConfig.zones} onChange={noop} readOnly />
           </CollapsibleSection>
           <CollapsibleSection
+            title={t('editor.sectionPlayerActions')}
+            isOpen={!collapsedSections.has('playerActions')}
+            onToggleOpen={() => toggleSection('playerActions')}
+          >
+            <PlayerActionsEditor playerActions={parsedConfig.playerActions} onChange={noop} readOnly />
+          </CollapsibleSection>
+          <CollapsibleSection
             title={t('editor.sectionAttributes')}
             isOpen={!collapsedSections.has('attributes')}
             onToggleOpen={() => toggleSection('attributes')}
@@ -102,13 +109,6 @@ export default function VersionConfigViewer({ config, catalogs }: Props) {
               onChange={noop}
               readOnly
             />
-          </CollapsibleSection>
-          <CollapsibleSection
-            title={t('editor.sectionPlayerActions')}
-            isOpen={!collapsedSections.has('playerActions')}
-            onToggleOpen={() => toggleSection('playerActions')}
-          >
-            <PlayerActionsEditor playerActions={parsedConfig.playerActions} onChange={noop} readOnly />
           </CollapsibleSection>
           <CollapsibleSection
             title={t('editor.sectionPlayerActionRules')}

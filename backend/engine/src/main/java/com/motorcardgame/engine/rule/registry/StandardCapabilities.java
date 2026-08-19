@@ -16,6 +16,7 @@ import com.motorcardgame.engine.rule.condition.AndCondition;
 import com.motorcardgame.engine.rule.condition.CardAttributeEqualsCondition;
 import com.motorcardgame.engine.rule.condition.CardAttributeMatchesZoneCondition;
 import com.motorcardgame.engine.rule.condition.EventCardAttributeEqualsCondition;
+import com.motorcardgame.engine.rule.condition.EventCardInZoneCondition;
 import com.motorcardgame.engine.rule.condition.NotCondition;
 import com.motorcardgame.engine.rule.condition.OrCondition;
 import com.motorcardgame.engine.rule.condition.Position;
@@ -34,8 +35,9 @@ import java.util.List;
  * decoradores lógicos/de control (AND, OR, NOT, SEQUENCE, REPEAT) y un lote de capacidades de
  * partida (DRAW_CARDS, NEXT_PLAYER, MOVE_CARD, REVERSE_DIRECTION, ZONE_IS_EMPTY,
  * CARD_ATTRIBUTE_EQUALS, CARD_ATTRIBUTE_MATCHES_ZONE, EVENT_CARD_ATTRIBUTE_EQUALS,
- * CURRENT_PLAYER, ALL_PLAYERS, NEXT_PLAYER) — generales para cualquier juego de cartas por turnos
- * con pilas y manos, no específicas de UNO, aunque UNO sea el primer caso que las ejercita.
+ * EVENT_CARD_IN_ZONE, CURRENT_PLAYER, ALL_PLAYERS, NEXT_PLAYER) — generales para cualquier juego
+ * de cartas por turnos con pilas y manos, no específicas de UNO, aunque UNO sea el primer caso que
+ * las ejercita.
  */
 public final class StandardCapabilities {
 
@@ -138,6 +140,12 @@ public final class StandardCapabilities {
                         ZoneRefs.fromJson(JsonNodes.requiredObject(node, "cardZone")),
                         JsonNodes.requiredText(node, "attribute"),
                         JsonNodes.scalarValue(node.path("equals"))));
+
+        conditionRegistry.register(
+                CapabilityDescriptor.condition("EVENT_CARD_IN_ZONE", List.of(
+                        FieldDescriptor.zoneRef("zone"))),
+                (node, parser) -> new EventCardInZoneCondition(
+                        ZoneRefs.fromJson(JsonNodes.requiredObject(node, "zone"))));
 
         conditionRegistry.register(
                 CapabilityDescriptor.condition("AND", List.of(

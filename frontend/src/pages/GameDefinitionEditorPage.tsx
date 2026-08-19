@@ -299,6 +299,16 @@ export default function GameDefinitionEditorPage({
             <ZonesEditor zones={config.zones} onChange={(zones) => setConfig({ ...config, zones })} />
           </CollapsibleSection>
           <CollapsibleSection
+            title={t('editor.sectionPlayerActions')}
+            isOpen={!collapsedSections.has('playerActions')}
+            onToggleOpen={() => toggleSection('playerActions')}
+          >
+            <PlayerActionsEditor
+              playerActions={config.playerActions}
+              onChange={(playerActions) => setConfig({ ...config, playerActions })}
+            />
+          </CollapsibleSection>
+          <CollapsibleSection
             title={t('editor.sectionAttributes')}
             isOpen={!collapsedSections.has('attributes')}
             onToggleOpen={() => toggleSection('attributes')}
@@ -320,16 +330,6 @@ export default function GameDefinitionEditorPage({
               catalogs={catalogs}
               playerActions={config.playerActions}
               onChange={(cards) => setConfig({ ...config, cards })}
-            />
-          </CollapsibleSection>
-          <CollapsibleSection
-            title={t('editor.sectionPlayerActions')}
-            isOpen={!collapsedSections.has('playerActions')}
-            onToggleOpen={() => toggleSection('playerActions')}
-          >
-            <PlayerActionsEditor
-              playerActions={config.playerActions}
-              onChange={(playerActions) => setConfig({ ...config, playerActions })}
             />
           </CollapsibleSection>
           <CollapsibleSection

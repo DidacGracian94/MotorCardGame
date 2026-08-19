@@ -116,12 +116,18 @@ public final class RuleSetParser {
         JsonNode rulesNode = JsonNodes.requiredArray(root, "rules");
         List<Rule> rules = new ArrayList<>();
         for (JsonNode ruleNode : rulesNode) {
-            rules.add(parseRule(ruleNode));
+            rules.add(parseRule(ruleNode, null));
         }
         rules.addAll(parseCardRules(root));
         return List.copyOf(rules);
     }
 
+    /**
+     * A diferencia de las reglas globales, cada regla nace con el {@code id} de la carta que la
+     * contiene como {@link Rule#sourceCardTemplateId()} — es lo que le permite a
+     * {@link com.motorcardgame.engine.rule.RuleEngine} exigir que el evento se refiera a esa carta
+     * en concreto, no solo al mismo tipo de evento.
+     */
     private List<Rule> parseCardRules(JsonNode root) {
         List<Rule> rules = new ArrayList<>();
         JsonNode cardsNode = root.path("cards");
@@ -133,19 +139,20 @@ public final class RuleSetParser {
             if (!cardRulesNode.isArray()) {
                 continue;
             }
+            String templateId = JsonNodes.requiredText(cardNode, "id");
             for (JsonNode ruleNode : cardRulesNode) {
-                rules.add(parseRule(ruleNode));
+                rules.add(parseRule(ruleNode, templateId));
             }
         }
         return rules;
     }
 
-    private Rule parseRule(JsonNode node) {
+    private Rule parseRule(JsonNode node, String sourceCardTemplateId) {
         String eventType = JsonNodes.requiredText(node, "event");
         Condition condition = parseCondition(JsonNodes.requiredObject(node, "condition"));
         Target target = parseTarget(JsonNodes.requiredObject(node, "target"));
         Action action = parseAction(JsonNodes.requiredObject(node, "action"));
-        return new Rule(eventType, condition, target, action);
+        return new Rule(eventType, condition, target, action, sourceCardTemplateId);
     }
 
     public Condition parseCondition(JsonNode node) {

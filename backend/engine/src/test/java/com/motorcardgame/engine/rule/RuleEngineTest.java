@@ -80,6 +80,39 @@ class RuleEngineTest {
         assertEquals(2, executions[0]);
     }
 
+    @Test
+    void cardScopedRuleOnlyFiresForEventsReferencingThatCardTemplate() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+        int[] executions = {0};
+        Rule rule = new Rule(
+                "CARD_PLAYED",
+                new AndCondition(),
+                ctx -> List.of(ALICE),
+                ctx -> executions[0]++,
+                "reverso-rojo");
+        RuleEngine engine = new RuleEngine(List.of(rule));
+
+        assertFalse(engine.handle(Event.of("CARD_PLAYED"), state), "sin payload no puede identificar la carta");
+        assertFalse(engine.handle(new Event("CARD_PLAYED", Map.of("cardId", 42)), state), "payload no-String, no ClassCastException");
+        assertFalse(engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "wild#1")), state), "carta distinta");
+        assertEquals(0, executions[0]);
+
+        assertTrue(engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "reverso-rojo#1")), state));
+        assertEquals(1, executions[0]);
+    }
+
+    @Test
+    void unscopedRuleFiresRegardlessOfCardIdPayload() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+        int[] executions = {0};
+        Rule rule = new Rule("CARD_PLAYED", new AndCondition(), ctx -> List.of(ALICE), ctx -> executions[0]++);
+        RuleEngine engine = new RuleEngine(List.of(rule));
+
+        assertTrue(engine.handle(Event.of("CARD_PLAYED"), state));
+        assertTrue(engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "whatever#1")), state));
+        assertEquals(2, executions[0]);
+    }
+
     private static GameState newStateWithPileOf(int cardCount) {
         GameState state = new GameState(List.of(ALICE, BOB));
         LinearZone pile = new LinearZone();

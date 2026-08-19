@@ -377,7 +377,7 @@ class RuleSetParserTest {
     }
 
     @Test
-    void parseIncludesRulesNestedInsideCards() {
+    void cardNestedRuleFiresOnlyWhenThatCardIsReferencedByTheEvent() {
         GameState state = newStateWithPile(1, Map.of());
         RuleEngine engine = engineFor("""
                 {
@@ -400,10 +400,213 @@ class RuleSetParserTest {
                 }
                 """);
 
-        boolean matched = engine.handle(Event.of("CARD_PLAYED"), state);
+        boolean matched = engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "chupa2#1")), state);
 
         assertTrue(matched);
         assertEquals(BOB, state.currentPlayer());
+    }
+
+    @Test
+    void cardNestedRuleDoesNotFireForADifferentCard() {
+        GameState state = newStateWithPile(1, Map.of());
+        RuleEngine engine = engineFor("""
+                {
+                  "rules": [],
+                  "cards": [
+                    {
+                      "id": "chupa2",
+                      "zone": "pile",
+                      "attributes": {},
+                      "rules": [
+                        {
+                          "event": "CARD_PLAYED",
+                          "condition": { "type": "AND", "conditions": [] },
+                          "target": { "type": "CURRENT_PLAYER" },
+                          "action": { "type": "NEXT_PLAYER" }
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """);
+
+        assertFalse(engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "red-3#1")), state));
+        assertFalse(engine.handle(Event.of("CARD_PLAYED"), state));
+        assertEquals(ALICE, state.currentPlayer());
+    }
+
+    @Test
+    void globalRuleStillFiresRegardlessOfWhichCardTheEventReferences() {
+        GameState state = newStateWithPile(1, Map.of());
+        RuleEngine engine = engineFor("""
+                {
+                  "rules": [
+                    {
+                      "event": "CARD_PLAYED",
+                      "condition": { "type": "AND", "conditions": [] },
+                      "target": { "type": "CURRENT_PLAYER" },
+                      "action": { "type": "NEXT_PLAYER" }
+                    }
+                  ]
+                }
+                """);
+
+        assertTrue(engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "whatever#1")), state));
+        assertEquals(BOB, state.currentPlayer());
+    }
+
+    @Test
+    void cardEffectAndOwnLegalityPatternsCoexistWithoutDoubleOrZeroMovement() {
+        // "Efecto extra" (reverso): sigue la legalidad normal (color coincide con el tope de la
+        // pila), y la regla global es la única que la mueve. Su propia regla de carta NO repite
+        // esa comprobación de legalidad (la carta ya no está en la mano una vez movida — repetirla
+        // ahí lanzaría NoSuchElementException, no daría "false"); en su lugar comprueba con
+        // EVENT_CARD_IN_ZONE si la carta ya está en el descarte (es decir, si la jugada fue
+        // aceptada) y solo entonces añade NEXT_PLAYER como efecto extra, sin volver a moverla.
+        // "Legalidad propia" (comodín): no tiene atributo "color", así que la condición global de
+        // legalidad es falsa para él; su propia regla de carta declara condición "true" y hace el
+        // MOVE_CARD ella misma.
+        GameState state = new GameState(List.of(ALICE, BOB));
+        LinearZone pile = new LinearZone();
+        pile.pushTop(new Card(new CardId("discard-seed#1"), Map.of("color", "RED")));
+        state.registerSharedZone("discard", pile);
+        LinearZone hand = new LinearZone();
+        hand.pushTop(new Card(new CardId("reverso-rojo#1"), Map.of("color", "RED")));
+        state.registerPlayerZone(ALICE.id(), "hand", hand);
+        state.registerPlayerZone(BOB.id(), "hand", new LinearZone());
+
+        RuleEngine engine = engineFor("""
+                {
+                  "rules": [
+                    {
+                      "event": "CARD_PLAYED",
+                      "condition": {
+                        "type": "CARD_ATTRIBUTE_MATCHES_ZONE",
+                        "cardZone": { "name": "hand", "ownership": "PER_PLAYER" },
+                        "attribute": "color",
+                        "zone": { "name": "discard", "ownership": "SHARED" },
+                        "position": "TOP"
+                      },
+                      "target": { "type": "CURRENT_PLAYER" },
+                      "action": {
+                        "type": "MOVE_CARD",
+                        "from": { "name": "hand", "ownership": "PER_PLAYER" },
+                        "to": { "name": "discard", "ownership": "SHARED" }
+                      }
+                    }
+                  ],
+                  "cards": [
+                    {
+                      "id": "reverso-rojo",
+                      "zone": "hand",
+                      "attributes": { "color": "RED" },
+                      "rules": [
+                        {
+                          "event": "CARD_PLAYED",
+                          "condition": {
+                            "type": "EVENT_CARD_IN_ZONE",
+                            "zone": { "name": "discard", "ownership": "SHARED" }
+                          },
+                          "target": { "type": "CURRENT_PLAYER" },
+                          "action": { "type": "NEXT_PLAYER" }
+                        }
+                      ]
+                    },
+                    {
+                      "id": "wild",
+                      "zone": "hand",
+                      "attributes": {},
+                      "rules": [
+                        {
+                          "event": "CARD_PLAYED",
+                          "condition": { "type": "AND", "conditions": [] },
+                          "target": { "type": "CURRENT_PLAYER" },
+                          "action": {
+                            "type": "MOVE_CARD",
+                            "from": { "name": "hand", "ownership": "PER_PLAYER" },
+                            "to": { "name": "discard", "ownership": "SHARED" }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """);
+
+        assertTrue(engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "reverso-rojo#1")), state));
+        assertEquals(0, hand.size());
+        assertEquals("reverso-rojo#1", pile.peekTop().id().value());
+        // El MOVE_CARD (global) y el efecto extra NEXT_PLAYER (de la carta) se ejecutaron ambos
+        // una sola vez — si MOVE_CARD se hubiera ejecutado dos veces, la segunda habría lanzado
+        // NoSuchElementException al no encontrar la carta ya movida en la mano.
+        assertEquals(BOB, state.currentPlayer());
+
+        LinearZone bobHand = (LinearZone) state.zoneOf(BOB.id(), "hand");
+        bobHand.pushTop(new Card(new CardId("wild#1"), Map.of()));
+
+        assertTrue(engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "wild#1")), state));
+        assertEquals(0, bobHand.size());
+        assertEquals("wild#1", pile.peekTop().id().value());
+    }
+
+    @Test
+    void cardEffectRuleDoesNotFireWhenTheUnderlyingPlayWasIllegal() {
+        // reverso-azul no coincide con el tope del descarte (RED) — la regla global no la mueve,
+        // así que EVENT_CARD_IN_ZONE sigue siendo falso para ella y el efecto extra tampoco se
+        // aplica: la jugada entera queda sin match, como cualquier otra jugada ilegal.
+        GameState state = new GameState(List.of(ALICE, BOB));
+        LinearZone pile = new LinearZone();
+        pile.pushTop(new Card(new CardId("discard-seed#1"), Map.of("color", "RED")));
+        state.registerSharedZone("discard", pile);
+        LinearZone hand = new LinearZone();
+        hand.pushTop(new Card(new CardId("reverso-azul#1"), Map.of("color", "BLUE")));
+        state.registerPlayerZone(ALICE.id(), "hand", hand);
+        state.registerPlayerZone(BOB.id(), "hand", new LinearZone());
+
+        RuleEngine engine = engineFor("""
+                {
+                  "rules": [
+                    {
+                      "event": "CARD_PLAYED",
+                      "condition": {
+                        "type": "CARD_ATTRIBUTE_MATCHES_ZONE",
+                        "cardZone": { "name": "hand", "ownership": "PER_PLAYER" },
+                        "attribute": "color",
+                        "zone": { "name": "discard", "ownership": "SHARED" },
+                        "position": "TOP"
+                      },
+                      "target": { "type": "CURRENT_PLAYER" },
+                      "action": {
+                        "type": "MOVE_CARD",
+                        "from": { "name": "hand", "ownership": "PER_PLAYER" },
+                        "to": { "name": "discard", "ownership": "SHARED" }
+                      }
+                    }
+                  ],
+                  "cards": [
+                    {
+                      "id": "reverso-azul",
+                      "zone": "hand",
+                      "attributes": { "color": "BLUE" },
+                      "rules": [
+                        {
+                          "event": "CARD_PLAYED",
+                          "condition": {
+                            "type": "EVENT_CARD_IN_ZONE",
+                            "zone": { "name": "discard", "ownership": "SHARED" }
+                          },
+                          "target": { "type": "CURRENT_PLAYER" },
+                          "action": { "type": "NEXT_PLAYER" }
+                        }
+                      ]
+                    }
+                  ]
+                }
+                """);
+
+        assertFalse(engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "reverso-azul#1")), state));
+        assertEquals(1, hand.size());
+        assertEquals(ALICE, state.currentPlayer());
     }
 
     @Test

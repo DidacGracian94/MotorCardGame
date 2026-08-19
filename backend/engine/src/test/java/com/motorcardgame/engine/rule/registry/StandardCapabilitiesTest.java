@@ -32,6 +32,7 @@ class StandardCapabilitiesTest {
         assertTrue(conditionRegistry.contains("CARD_ATTRIBUTE_EQUALS"));
         assertTrue(conditionRegistry.contains("CARD_ATTRIBUTE_MATCHES_ZONE"));
         assertTrue(conditionRegistry.contains("EVENT_CARD_ATTRIBUTE_EQUALS"));
+        assertTrue(conditionRegistry.contains("EVENT_CARD_IN_ZONE"));
         assertTrue(conditionRegistry.contains("AND"));
         assertTrue(conditionRegistry.contains("OR"));
         assertTrue(conditionRegistry.contains("NOT"));
@@ -41,7 +42,7 @@ class StandardCapabilitiesTest {
         assertTrue(targetRegistry.contains("NEXT_PLAYER"));
 
         assertEquals(6, actionRegistry.describeAll().size());
-        assertEquals(7, conditionRegistry.describeAll().size());
+        assertEquals(8, conditionRegistry.describeAll().size());
         assertEquals(3, targetRegistry.describeAll().size());
     }
 

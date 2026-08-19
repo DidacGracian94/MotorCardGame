@@ -1,6 +1,6 @@
 import { CapabilitiesDto } from '@/api/client'
 import { useTranslation } from '@/i18n/LanguageContext'
-import { AttributesConfig, GAME_STARTED_EVENT, RuleConfig, ZoneConfig } from '@/types/config'
+import { AttributesConfig, RuleConfig, ZoneConfig } from '@/types/config'
 import CapabilityNodeEditor from '@/components/editor/CapabilityNodeEditor'
 
 interface Props {
@@ -14,6 +14,10 @@ interface Props {
   isOpen: boolean
   onToggleOpen: () => void
   readOnly?: boolean
+  // Cuando se da, el evento de esta regla está fijado a este valor (p.ej. GAME_STARTED en
+  // "reglas genéricas") y no se muestra selector — no tiene sentido ofrecer acciones de jugador
+  // como alternativa ahí, para eso ya está la sección de reglas de acción de jugador.
+  fixedEvent?: string
 }
 
 export default function RuleBuilder({
@@ -27,10 +31,11 @@ export default function RuleBuilder({
   isOpen,
   onToggleOpen,
   readOnly = false,
+  fixedEvent,
 }: Props) {
   const { t, tf } = useTranslation()
   const eventOptions =
-    rule.event && rule.event !== GAME_STARTED_EVENT && !playerActions.includes(rule.event)
+    rule.event && !playerActions.includes(rule.event) && rule.event !== fixedEvent
       ? [rule.event, ...playerActions]
       : playerActions
   const actionLabel = rule.action.type ? tf(`capability.${rule.action.type}`, rule.action.type) : ''
@@ -49,21 +54,24 @@ export default function RuleBuilder({
         {isOpen ? (
           <div className="flex-1">
             <label className="block text-xs font-medium text-slate-600 mb-1">{t('editor.eventLabel')}</label>
-            <select
-              value={rule.event}
-              onChange={(e) => onChange({ ...rule, event: e.target.value })}
-              disabled={readOnly}
-              className="w-full px-2 py-1 border border-slate-300 rounded text-sm bg-white disabled:bg-slate-50 disabled:text-slate-600"
-            >
-              <option value="">{t('editor.selectEventPlaceholder')}</option>
-              <option value={GAME_STARTED_EVENT}>{tf(`event.${GAME_STARTED_EVENT}`, GAME_STARTED_EVENT)}</option>
-              {eventOptions.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                  {!playerActions.includes(name) ? ` (${t('editor.attributeUndeclaredOption')})` : ''}
-                </option>
-              ))}
-            </select>
+            {fixedEvent ? (
+              <div className="px-2 py-1 text-sm text-slate-600">{tf(`event.${fixedEvent}`, fixedEvent)}</div>
+            ) : (
+              <select
+                value={rule.event}
+                onChange={(e) => onChange({ ...rule, event: e.target.value })}
+                disabled={readOnly}
+                className="w-full px-2 py-1 border border-slate-300 rounded text-sm bg-white disabled:bg-slate-50 disabled:text-slate-600"
+              >
+                <option value="">{t('editor.selectEventPlaceholder')}</option>
+                {eventOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                    {!playerActions.includes(name) ? ` (${t('editor.attributeUndeclaredOption')})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         ) : (
           <button onClick={onToggleOpen} className="flex-1 text-left min-w-0">
