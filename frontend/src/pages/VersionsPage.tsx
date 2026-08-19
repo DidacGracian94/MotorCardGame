@@ -1,23 +1,12 @@
+import { useNavigate, useParams } from 'react-router-dom'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useGameDefinitions, useGameDefinitionVersions } from '@/hooks/useGameDefinitions'
 import { useTranslation } from '@/i18n/LanguageContext'
 import VersionsTable from '@/components/VersionsTable'
 
-interface Props {
-  gameDefinitionId: string
-  onBack: () => void
-  onNewVersion: () => void
-  onEditAsNewVersion: (versionNumber: number) => void
-  onCreateInstance: (versionNumber: number) => void
-}
-
-export default function VersionsPage({
-  gameDefinitionId,
-  onBack,
-  onNewVersion,
-  onEditAsNewVersion,
-  onCreateInstance,
-}: Props) {
+export default function VersionsPage() {
+  const { gameDefinitionId = '' } = useParams<{ gameDefinitionId: string }>()
+  const navigate = useNavigate()
   const { data: definitions } = useGameDefinitions()
   const { data: versions, isLoading } = useGameDefinitionVersions(gameDefinitionId)
   const { data: catalogs, isLoading: catalogsLoading } = useCapabilities()
@@ -28,7 +17,7 @@ export default function VersionsPage({
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
       <button
-        onClick={onBack}
+        onClick={() => navigate('/')}
         className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-700 font-medium"
       >
         {t('common.backToDefinitions')}
@@ -42,7 +31,7 @@ export default function VersionsPage({
           )}
         </div>
         <button
-          onClick={onNewVersion}
+          onClick={() => navigate(`/games/${gameDefinitionId}/editor`)}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           {t('versions.newVersionButton')}
@@ -61,8 +50,12 @@ export default function VersionsPage({
         <VersionsTable
           versions={versions}
           catalogs={catalogs}
-          onEditAsNewVersion={onEditAsNewVersion}
-          onCreateInstance={onCreateInstance}
+          onEditAsNewVersion={(versionNumber) =>
+            navigate(`/games/${gameDefinitionId}/editor?sourceVersion=${versionNumber}`)
+          }
+          onCreateInstance={(versionNumber) =>
+            navigate(`/games/${gameDefinitionId}/instances/new?version=${versionNumber}`)
+          }
         />
       ) : null}
     </div>

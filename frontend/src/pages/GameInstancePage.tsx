@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useGameDefinitionVersions } from '@/hooks/useGameDefinitions'
 import { useApplyPlayerAction, useGameInstance } from '@/hooks/useGameInstance'
 import { useTranslation } from '@/i18n/LanguageContext'
@@ -9,13 +10,12 @@ import ActionPanel from '@/components/instance/ActionPanel'
 import HandView from '@/components/instance/HandView'
 import ZoneView from '@/components/instance/ZoneView'
 
-interface Props {
-  instanceId: string
-  viewerPlayerId: string | null
-  onBack: () => void
-}
-
-export default function GameInstancePage({ instanceId, viewerPlayerId, onBack }: Props) {
+export default function GameInstancePage() {
+  const { instanceId = '' } = useParams<{ instanceId: string }>()
+  const [searchParams] = useSearchParams()
+  const viewerPlayerId = searchParams.get('asPlayer')
+  const navigate = useNavigate()
+  const onBack = () => navigate('/')
   const { t } = useTranslation()
   const { data, refetch } = useGameInstance(instanceId, viewerPlayerId)
   const snapshot = useGameInstanceStore((s) => s.snapshot)

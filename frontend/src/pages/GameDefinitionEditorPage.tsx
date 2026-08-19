@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useCapabilities } from '@/hooks/useCapabilities'
 import { useGameDefinitionVersion, usePublishVersion } from '@/hooks/useGameDefinitions'
 import { useTranslation } from '@/i18n/LanguageContext'
@@ -11,12 +12,6 @@ import CardTemplatesEditor from '@/components/editor/CardTemplatesEditor'
 import RulesEditor from '@/components/editor/RulesEditor'
 import JsonConfigTab from '@/components/editor/JsonConfigTab'
 import CollapsibleSection from '@/components/editor/CollapsibleSection'
-
-interface Props {
-  gameDefinitionId: string
-  sourceVersionNumber?: number
-  onBack: () => void
-}
 
 type Tab = 'visual' | 'json'
 
@@ -150,11 +145,14 @@ function validateConfig(
   return undefined
 }
 
-export default function GameDefinitionEditorPage({
-  gameDefinitionId,
-  sourceVersionNumber,
-  onBack,
-}: Props) {
+export default function GameDefinitionEditorPage() {
+  const { gameDefinitionId = '' } = useParams<{ gameDefinitionId: string }>()
+  const [searchParams] = useSearchParams()
+  const sourceVersionNumberParam = searchParams.get('sourceVersion')
+  const sourceVersionNumber = sourceVersionNumberParam ? Number(sourceVersionNumberParam) : undefined
+  const navigate = useNavigate()
+  const onBack = () => navigate(`/games/${gameDefinitionId}/versions`)
+
   const { data: catalogs, isLoading: catalogsLoading } = useCapabilities()
   const { data: sourceVersion } = useGameDefinitionVersion(gameDefinitionId, sourceVersionNumber)
   const publishMutation = usePublishVersion()

@@ -1,26 +1,30 @@
 import { useState } from 'react'
-import { GameDefinitionDto } from '@/api/client'
+import { useNavigate } from 'react-router-dom'
+import { useGameDefinitions } from '@/hooks/useGameDefinitions'
 import { useTranslation } from '@/i18n/LanguageContext'
 import CreateDefinitionModal from '@/components/CreateDefinitionModal'
 import RenameDefinitionModal from '@/components/RenameDefinitionModal'
 import GameDefinitionsTable from '@/components/GameDefinitionsTable'
 
-interface Props {
-  definitions: GameDefinitionDto[]
-  isLoading: boolean
-  onViewVersions: (id: string) => void
-}
-
-export default function GameDefinitionsPage({
-  definitions,
-  isLoading,
-  onViewVersions,
-}: Props) {
+export default function GameDefinitionsPage() {
+  const navigate = useNavigate()
+  const { data: definitions, isLoading, error } = useGameDefinitions()
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [renameDialogId, setRenameDialogId] = useState<string | null>(null)
   const { t } = useTranslation()
 
-  const selectedDefinition = definitions.find((d) => d.id === renameDialogId)
+  const selectedDefinition = definitions?.find((d) => d.id === renameDialogId)
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-900 mb-2">{t('common.error')}</h1>
+          <p className="text-red-700">{error.message}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl mx-auto py-8 px-4">
@@ -38,14 +42,14 @@ export default function GameDefinitionsPage({
         <div className="text-center py-12">
           <p className="text-slate-600">{t('common.loading')}</p>
         </div>
-      ) : definitions.length === 0 ? (
+      ) : !definitions || definitions.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg">
           <p className="text-slate-600">{t('gameDefinitions.empty')}</p>
         </div>
       ) : (
         <GameDefinitionsTable
           definitions={definitions}
-          onViewVersions={onViewVersions}
+          onViewVersions={(id) => navigate(`/games/${id}/versions`)}
           onRename={setRenameDialogId}
         />
       )}

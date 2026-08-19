@@ -1,23 +1,14 @@
 import { useState } from 'react'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { GameInstancePlayerDto } from '@/api/client'
 import { useCreateGameInstance } from '@/hooks/useGameInstance'
 import { useTranslation } from '@/i18n/LanguageContext'
 
-interface Props {
-  gameDefinitionId: string
-  versionNumber: number
-  onBack: () => void
-  onEnterGame: (instanceId: string, viewerPlayerId: string | null) => void
-}
-
-const SPECTATOR = '__spectator__'
-
-export default function CreateInstancePage({
-  gameDefinitionId,
-  versionNumber,
-  onBack,
-  onEnterGame,
-}: Props) {
+export default function CreateInstancePage() {
+  const { gameDefinitionId = '' } = useParams<{ gameDefinitionId: string }>()
+  const [searchParams] = useSearchParams()
+  const versionNumber = Number(searchParams.get('version'))
+  const navigate = useNavigate()
   const { t } = useTranslation()
   const [players, setPlayers] = useState<GameInstancePlayerDto[]>([
     { id: '', displayName: '' },
@@ -25,7 +16,6 @@ export default function CreateInstancePage({
   ])
   const [validationError, setValidationError] = useState<string | null>(null)
   const [createdInstanceId, setCreatedInstanceId] = useState<string | null>(null)
-  const [playAs, setPlayAs] = useState<string>(SPECTATOR)
   const createInstance = useCreateGameInstance()
 
   const updatePlayer = (index: number, field: 'id' | 'displayName', value: string) => {
@@ -52,12 +42,7 @@ export default function CreateInstancePage({
     setValidationError(null)
     createInstance.mutate(
       { gameDefinitionId, data: { versionNumber, players } },
-      {
-        onSuccess: (created) => {
-          setCreatedInstanceId(created.id)
-          setPlayAs(players[0]?.id ?? SPECTATOR)
-        },
-      }
+      { onSuccess: (created) => setCreatedInstanceId(created.id) }
     )
   }
 
@@ -66,29 +51,27 @@ export default function CreateInstancePage({
       <div className="max-w-2xl mx-auto py-8 px-4">
         <div className="bg-white rounded-lg shadow p-6 space-y-4">
           <p className="text-green-700">{t('instance.createdSuccessfully')}</p>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t('instance.playAsLabel')}
-            </label>
-            <select
-              value={playAs}
-              onChange={(e) => setPlayAs(e.target.value)}
-              className="w-full border border-slate-300 rounded-md px-3 py-2"
-            >
-              {players.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.displayName} ({p.id})
-                </option>
-              ))}
-              <option value={SPECTATOR}>{t('instance.spectatorOption')}</option>
-            </select>
-          </div>
-          <button
-            onClick={() => onEnterGame(createdInstanceId, playAs === SPECTATOR ? null : playAs)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            {t('instance.enterGame')}
-          </button>
+          <p className="text-slate-500 text-sm">{t('instance.newTabHint')}</p>
+          <ul className="space-y-2">
+            {players.map((p) => (
+              <li key={p.id}>
+                <Link
+                  to={`/instances/${createdInstanceId}?asPlayer=${encodeURIComponent(p.id)}`}
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  {t('instance.enterAs', { player: p.displayName })}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <Link
+                to={`/instances/${createdInstanceId}`}
+                className="text-slate-600 hover:text-slate-700 font-medium"
+              >
+                {t('instance.enterAsSpectator')}
+              </Link>
+            </li>
+          </ul>
         </div>
       </div>
     )
@@ -96,7 +79,10 @@ export default function CreateInstancePage({
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
-      <button onClick={onBack} className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-700 font-medium">
+      <button
+        onClick={() => navigate(`/games/${gameDefinitionId}/versions`)}
+        className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-700 font-medium"
+      >
         {t('instance.back')}
       </button>
       <h1 className="text-3xl font-bold text-slate-900 mb-6">
