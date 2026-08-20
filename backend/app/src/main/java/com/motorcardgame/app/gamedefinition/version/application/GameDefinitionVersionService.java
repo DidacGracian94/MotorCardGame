@@ -1,5 +1,6 @@
 package com.motorcardgame.app.gamedefinition.version.application;
 
+import com.motorcardgame.app.auth.domain.Role;
 import com.motorcardgame.app.gamedefinition.application.GameDefinitionService;
 import com.motorcardgame.app.gamedefinition.version.domain.GameDefinitionVersion;
 import com.motorcardgame.app.gamedefinition.version.domain.GameDefinitionVersionRepository;
@@ -48,8 +49,9 @@ public class GameDefinitionVersionService {
         this.requiresNewTransactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
-    public GameDefinitionVersion publish(UUID gameDefinitionId, String config) {
-        gameDefinitionService.getById(gameDefinitionId);
+    public GameDefinitionVersion publish(
+            UUID gameDefinitionId, String config, UUID actingUserId, Role actingUserRole) {
+        gameDefinitionService.assertEditable(gameDefinitionId, actingUserId, actingUserRole);
         ruleSetParser.parse(config);
         ruleSetParser.validateEvents(config);
         gameSetupParser.buildInitialState(config, VALIDATION_PLAYERS);
@@ -74,12 +76,15 @@ public class GameDefinitionVersionService {
         });
     }
 
-    public List<GameDefinitionVersion> listByGameDefinition(UUID gameDefinitionId) {
-        gameDefinitionService.getById(gameDefinitionId);
+    public List<GameDefinitionVersion> listByGameDefinition(
+            UUID gameDefinitionId, UUID actingUserId, Role actingUserRole) {
+        gameDefinitionService.assertVisible(gameDefinitionId, actingUserId, actingUserRole);
         return repository.findByGameDefinitionId(gameDefinitionId);
     }
 
-    public GameDefinitionVersion getByVersionNumber(UUID gameDefinitionId, int versionNumber) {
+    public GameDefinitionVersion getByVersionNumber(
+            UUID gameDefinitionId, int versionNumber, UUID actingUserId, Role actingUserRole) {
+        gameDefinitionService.assertVisible(gameDefinitionId, actingUserId, actingUserRole);
         return repository
                 .findByGameDefinitionIdAndVersionNumber(gameDefinitionId, versionNumber)
                 .orElseThrow(() -> new GameDefinitionVersionNotFoundException(gameDefinitionId, versionNumber));

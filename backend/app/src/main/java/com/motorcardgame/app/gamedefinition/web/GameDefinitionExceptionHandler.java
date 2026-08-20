@@ -1,5 +1,6 @@
 package com.motorcardgame.app.gamedefinition.web;
 
+import com.motorcardgame.app.gamedefinition.application.GameDefinitionAccessDeniedException;
 import com.motorcardgame.app.gamedefinition.application.GameDefinitionNotFoundException;
 import com.motorcardgame.app.gamedefinition.application.SlugAlreadyExistsException;
 import com.motorcardgame.app.gamedefinition.instance.application.GameInstanceNotFoundException;
@@ -28,6 +29,11 @@ class GameDefinitionExceptionHandler {
     @ExceptionHandler(GameDefinitionNotFoundException.class)
     ResponseEntity<String> handleNotFound(GameDefinitionNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(GameDefinitionAccessDeniedException.class)
+    ResponseEntity<String> handleAccessDenied(GameDefinitionAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
     }
 
     @ExceptionHandler(SlugAlreadyExistsException.class)

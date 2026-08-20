@@ -4,17 +4,16 @@ import VersionsPage from '@/pages/VersionsPage'
 import GameDefinitionEditorPage from '@/pages/GameDefinitionEditorPage'
 import CreateInstancePage from '@/pages/CreateInstancePage'
 import GameInstancePage from '@/pages/GameInstancePage'
+import AdminUsersPage from '@/pages/AdminUsersPage'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
-import LanguageSwitcher from '@/components/LanguageSwitcher'
+import ProfileMenu from '@/components/ProfileMenu'
 import ProtectedRoute from '@/components/ProtectedRoute'
-import UserMenu from '@/components/UserMenu'
 
 function App() {
   return (
     <div className="min-h-screen bg-slate-50">
-      <LanguageSwitcher />
-      <UserMenu />
+      <ProfileMenu />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
@@ -55,6 +54,14 @@ function App() {
           element={
             <ProtectedRoute>
               <GameInstancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminUsersPage />
             </ProtectedRoute>
           }
         />

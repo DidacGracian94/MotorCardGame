@@ -1,7 +1,10 @@
 package com.motorcardgame.app.auth.infrastructure.persistence;
 
+import com.motorcardgame.app.auth.domain.Role;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
@@ -26,6 +29,10 @@ public class UserJpaEntity {
     @Column(name = "display_name", nullable = false)
     private String displayName;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -42,6 +49,7 @@ public class UserJpaEntity {
             String passwordHash,
             String googleSubject,
             String displayName,
+            Role role,
             Instant createdAt,
             Instant updatedAt) {
         this.id = id;
@@ -49,6 +57,7 @@ public class UserJpaEntity {
         this.passwordHash = passwordHash;
         this.googleSubject = googleSubject;
         this.displayName = displayName;
+        this.role = role;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -71,6 +80,10 @@ public class UserJpaEntity {
 
     public String getDisplayName() {
         return displayName;
+    }
+
+    public Role getRole() {
+        return role;
     }
 
     public Instant getCreatedAt() {

@@ -10,31 +10,59 @@ public final class GameDefinition {
     private final UUID ownerId;
     private String name;
     private final String slug;
+    private GameDefinitionVisibility visibility;
     private final Instant createdAt;
     private Instant updatedAt;
 
-    private GameDefinition(UUID id, UUID ownerId, String name, String slug, Instant createdAt, Instant updatedAt) {
+    private GameDefinition(
+            UUID id,
+            UUID ownerId,
+            String name,
+            String slug,
+            GameDefinitionVisibility visibility,
+            Instant createdAt,
+            Instant updatedAt) {
         this.id = id;
         this.ownerId = ownerId;
         this.name = name;
         this.slug = slug;
+        this.visibility = visibility;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
     public static GameDefinition create(UUID ownerId, String name, String slug) {
         Instant now = Instant.now();
-        return new GameDefinition(UUID.randomUUID(), ownerId, name, slug, now, now);
+        return new GameDefinition(UUID.randomUUID(), ownerId, name, slug, GameDefinitionVisibility.PRIVATE, now, now);
     }
 
     public static GameDefinition reconstitute(
-            UUID id, UUID ownerId, String name, String slug, Instant createdAt, Instant updatedAt) {
-        return new GameDefinition(id, ownerId, name, slug, createdAt, updatedAt);
+            UUID id,
+            UUID ownerId,
+            String name,
+            String slug,
+            GameDefinitionVisibility visibility,
+            Instant createdAt,
+            Instant updatedAt) {
+        return new GameDefinition(id, ownerId, name, slug, visibility, createdAt, updatedAt);
     }
 
     public void rename(String newName) {
         this.name = Objects.requireNonNull(newName, "newName");
         this.updatedAt = Instant.now();
+    }
+
+    public void changeVisibility(GameDefinitionVisibility newVisibility) {
+        this.visibility = Objects.requireNonNull(newVisibility, "newVisibility");
+        this.updatedAt = Instant.now();
+    }
+
+    public boolean isVisibleTo(UUID userId, boolean isAdmin) {
+        return isAdmin || ownerId.equals(userId) || visibility == GameDefinitionVisibility.PUBLIC;
+    }
+
+    public boolean isEditableBy(UUID userId, boolean isAdmin) {
+        return isAdmin || ownerId.equals(userId);
     }
 
     public UUID id() {
@@ -51,6 +79,10 @@ public final class GameDefinition {
 
     public String slug() {
         return slug;
+    }
+
+    public GameDefinitionVisibility visibility() {
+        return visibility;
     }
 
     public Instant createdAt() {

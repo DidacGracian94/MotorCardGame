@@ -12,6 +12,7 @@ hs_err_pid*
 *.iml
 *.iws
 .vscode/
+.claude/
 .classpath
 .project
 .settings/

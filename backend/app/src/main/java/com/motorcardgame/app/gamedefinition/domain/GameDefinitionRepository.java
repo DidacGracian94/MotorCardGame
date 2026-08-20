@@ -12,5 +12,7 @@ public interface GameDefinitionRepository {
 
     List<GameDefinition> findAll();
 
+    List<GameDefinition> findVisibleTo(UUID ownerId);
+
     boolean existsByOwnerIdAndSlug(UUID ownerId, String slug);
 }

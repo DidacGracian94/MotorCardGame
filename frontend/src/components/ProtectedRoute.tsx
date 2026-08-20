@@ -3,8 +3,13 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/auth/AuthContext'
 import { useTranslation } from '@/i18n/LanguageContext'
 
-export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { status } = useAuth()
+interface Props {
+  children: ReactNode
+  requireAdmin?: boolean
+}
+
+export default function ProtectedRoute({ children, requireAdmin = false }: Props) {
+  const { status, user } = useAuth()
   const { t } = useTranslation()
 
   if (status === 'loading') {
@@ -13,6 +18,10 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (status === 'anonymous') {
     return <Navigate to="/login" replace />
+  }
+
+  if (requireAdmin && user?.role !== 'ADMIN') {
+    return <Navigate to="/" replace />
   }
 
   return <>{children}</>

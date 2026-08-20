@@ -107,6 +107,11 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify({ name }),
       }),
+    setVisibility: (id: string, visibility: GameDefinitionVisibility) =>
+      apiCall<GameDefinitionDto>(`/game-definitions/${id}/visibility`, {
+        method: 'PATCH',
+        body: JSON.stringify({ visibility }),
+      }),
     versions: {
       list: (id: string) =>
         apiCall<GameDefinitionVersionDto[]>(
@@ -129,6 +134,16 @@ export const api = {
   capabilities: {
     list: () => apiCall<CapabilitiesDto>('/capabilities'),
   },
+  admin: {
+    users: {
+      list: () => apiCall<UserDto[]>('/admin/users'),
+      changeRole: (id: string, role: UserRole) =>
+        apiCall<UserDto>(`/admin/users/${id}/role`, {
+          method: 'PUT',
+          body: JSON.stringify({ role }),
+        }),
+    },
+  },
   gameInstances: {
     create: (gameDefinitionId: string, data: CreateGameInstanceRequest, asPlayer?: string) =>
       apiCall<GameInstanceDto>(
@@ -149,11 +164,14 @@ function asPlayerQuery(asPlayer?: string): string {
   return asPlayer ? `?asPlayer=${encodeURIComponent(asPlayer)}` : ''
 }
 
+export type GameDefinitionVisibility = 'PRIVATE' | 'PUBLIC'
+
 export interface GameDefinitionDto {
   id: string
   ownerId: string
   name: string
   slug: string
+  visibility: GameDefinitionVisibility
   createdAt: string
   updatedAt: string
 }
@@ -172,10 +190,13 @@ export interface CreateGameDefinitionRequest {
   slug: string
 }
 
+export type UserRole = 'ADMIN' | 'USER'
+
 export interface UserDto {
   id: string
   email: string
   displayName: string
+  role: UserRole
 }
 
 export interface AuthResponseDto {

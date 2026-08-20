@@ -1,4 +1,6 @@
+import { useAuth } from '@/auth/AuthContext'
 import { GameDefinitionDto } from '@/api/client'
+import { useSetGameDefinitionVisibility } from '@/hooks/useGameDefinitions'
 import { useTranslation } from '@/i18n/LanguageContext'
 import { formatDate } from '@/lib/utils'
 
@@ -13,7 +15,11 @@ export default function GameDefinitionsTable({
   onViewVersions,
   onRename,
 }: Props) {
-  const { t } = useTranslation()
+  const { t, tf } = useTranslation()
+  const { user } = useAuth()
+  const setVisibility = useSetGameDefinitionVisibility()
+
+  const canEdit = (def: GameDefinitionDto) => user?.role === 'ADMIN' || def.ownerId === user?.id
 
   return (
     <div className="overflow-x-auto bg-white rounded-lg shadow">
@@ -25,6 +31,9 @@ export default function GameDefinitionsTable({
             </th>
             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
               {t('common.slug')}
+            </th>
+            <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
+              {t('gameDefinitions.columnVisibility')}
             </th>
             <th className="px-6 py-3 text-left text-sm font-semibold text-slate-900">
               {t('common.created')}
@@ -44,6 +53,17 @@ export default function GameDefinitionsTable({
                 {def.slug}
               </td>
               <td className="px-6 py-4 text-sm text-slate-600">
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    def.visibility === 'PUBLIC'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-slate-100 text-slate-700'
+                  }`}
+                >
+                  {tf(`enum.${def.visibility}`, def.visibility)}
+                </span>
+              </td>
+              <td className="px-6 py-4 text-sm text-slate-600">
                 {formatDate(def.createdAt)}
               </td>
               <td className="px-6 py-4 text-right space-x-2">
@@ -53,12 +73,30 @@ export default function GameDefinitionsTable({
                 >
                   {t('gameDefinitions.viewVersions')}
                 </button>
-                <button
-                  onClick={() => onRename(def.id)}
-                  className="text-amber-600 hover:text-amber-700 font-medium text-sm"
-                >
-                  {t('common.rename')}
-                </button>
+                {canEdit(def) && (
+                  <>
+                    <button
+                      onClick={() => onRename(def.id)}
+                      className="text-amber-600 hover:text-amber-700 font-medium text-sm"
+                    >
+                      {t('common.rename')}
+                    </button>
+                    <button
+                      onClick={() =>
+                        setVisibility.mutate({
+                          id: def.id,
+                          visibility: def.visibility === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC',
+                        })
+                      }
+                      disabled={setVisibility.isPending}
+                      className="text-slate-600 hover:text-slate-700 font-medium text-sm disabled:opacity-50"
+                    >
+                      {def.visibility === 'PUBLIC'
+                        ? t('gameDefinitions.makePrivate')
+                        : t('gameDefinitions.makePublic')}
+                    </button>
+                  </>
+                )}
               </td>
             </tr>
           ))}

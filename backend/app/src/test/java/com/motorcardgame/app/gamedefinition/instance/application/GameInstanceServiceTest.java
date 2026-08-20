@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import com.motorcardgame.app.auth.domain.Role;
 import com.motorcardgame.app.gamedefinition.application.GameDefinitionNotFoundException;
 import com.motorcardgame.app.gamedefinition.application.GameDefinitionService;
 import com.motorcardgame.app.gamedefinition.domain.GameDefinition;
@@ -43,6 +44,8 @@ import org.springframework.context.ApplicationEventPublisher;
 class GameInstanceServiceTest {
 
     private static final List<Player> PLAYERS = List.of(new Player(new PlayerId("alice"), "Alice"));
+    private static final UUID ACTING_USER_ID = UUID.randomUUID();
+    private static final Role ACTING_USER_ROLE = Role.USER;
 
     @Mock
     private GameInstanceRepository repository;
@@ -79,13 +82,14 @@ class GameInstanceServiceTest {
         UUID gameDefinitionId = UUID.randomUUID();
         GameDefinitionVersion version = GameDefinitionVersion.publish(gameDefinitionId, 1, "{\"rules\":[],\"zones\":[]}");
         GameState state = new GameState(PLAYERS);
-        when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1)).thenReturn(version);
+        when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1, ACTING_USER_ID, ACTING_USER_ROLE))
+                .thenReturn(version);
         when(ruleSetParser.parse(version.config())).thenReturn(List.of());
         when(gameSetupParser.buildInitialState(version.config(), PLAYERS)).thenReturn(state);
         when(gameStateSerializer.toJson(state)).thenReturn("{\"players\":[]}");
         when(repository.save(any(GameInstance.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        GameInstance created = service.create(gameDefinitionId, 1, PLAYERS);
+        GameInstance created = service.create(gameDefinitionId, 1, PLAYERS, ACTING_USER_ID, ACTING_USER_ROLE);
 
         assertThat(created.gameDefinitionId()).isEqualTo(gameDefinitionId);
         assertThat(created.gameDefinitionVersionId()).isEqualTo(version.id());
@@ -96,10 +100,10 @@ class GameInstanceServiceTest {
     @Test
     void create_throwsVersionNotFound_whenVersionMissing() {
         UUID gameDefinitionId = UUID.randomUUID();
-        when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1))
+        when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1, ACTING_USER_ID, ACTING_USER_ROLE))
                 .thenThrow(new GameDefinitionVersionNotFoundException(gameDefinitionId, 1));
 
-        assertThatThrownBy(() -> service.create(gameDefinitionId, 1, PLAYERS))
+        assertThatThrownBy(() -> service.create(gameDefinitionId, 1, PLAYERS, ACTING_USER_ID, ACTING_USER_ROLE))
                 .isInstanceOf(GameDefinitionVersionNotFoundException.class);
         verifyNoInteractions(repository);
     }
@@ -108,10 +112,11 @@ class GameInstanceServiceTest {
     void create_propagatesInvalidGameDefinition_whenRulesAreInvalid() {
         UUID gameDefinitionId = UUID.randomUUID();
         GameDefinitionVersion version = GameDefinitionVersion.publish(gameDefinitionId, 1, "{}");
-        when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1)).thenReturn(version);
+        when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1, ACTING_USER_ID, ACTING_USER_ROLE))
+                .thenReturn(version);
         when(ruleSetParser.parse(version.config())).thenThrow(new InvalidGameDefinitionException("boom"));
 
-        assertThatThrownBy(() -> service.create(gameDefinitionId, 1, PLAYERS))
+        assertThatThrownBy(() -> service.create(gameDefinitionId, 1, PLAYERS, ACTING_USER_ID, ACTING_USER_ROLE))
                 .isInstanceOf(InvalidGameDefinitionException.class);
         verifyNoInteractions(repository);
     }
@@ -120,12 +125,13 @@ class GameInstanceServiceTest {
     void create_propagatesInvalidGameDefinition_whenZonesAreInvalid() {
         UUID gameDefinitionId = UUID.randomUUID();
         GameDefinitionVersion version = GameDefinitionVersion.publish(gameDefinitionId, 1, "{\"rules\":[]}");
-        when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1)).thenReturn(version);
+        when(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, 1, ACTING_USER_ID, ACTING_USER_ROLE))
+                .thenReturn(version);
         when(ruleSetParser.parse(version.config())).thenReturn(List.of());
         when(gameSetupParser.buildInitialState(version.config(), PLAYERS))
                 .thenThrow(new InvalidGameDefinitionException("boom"));
 
-        assertThatThrownBy(() -> service.create(gameDefinitionId, 1, PLAYERS))
+        assertThatThrownBy(() -> service.create(gameDefinitionId, 1, PLAYERS, ACTING_USER_ID, ACTING_USER_ROLE))
                 .isInstanceOf(InvalidGameDefinitionException.class);
         verifyNoInteractions(repository);
     }
@@ -151,19 +157,21 @@ class GameInstanceServiceTest {
     void listByGameDefinition_returnsInstances_whenDefinitionExists() {
         UUID gameDefinitionId = UUID.randomUUID();
         GameInstance instance = GameInstance.create(gameDefinitionId, UUID.randomUUID(), "{}");
-        when(gameDefinitionService.getById(gameDefinitionId))
+        when(gameDefinitionService.assertVisible(gameDefinitionId, ACTING_USER_ID, ACTING_USER_ROLE))
                 .thenReturn(GameDefinition.create(UUID.randomUUID(), "Mi Juego", "mi-juego"));
         when(repository.findByGameDefinitionId(gameDefinitionId)).thenReturn(List.of(instance));
 
-        assertThat(service.listByGameDefinition(gameDefinitionId)).containsExactly(instance);
+        assertThat(service.listByGameDefinition(gameDefinitionId, ACTING_USER_ID, ACTING_USER_ROLE))
+                .containsExactly(instance);
     }
 
     @Test
     void listByGameDefinition_throwsNotFound_whenDefinitionMissing() {
         UUID missingId = UUID.randomUUID();
-        when(gameDefinitionService.getById(missingId)).thenThrow(new GameDefinitionNotFoundException(missingId));
+        when(gameDefinitionService.assertVisible(missingId, ACTING_USER_ID, ACTING_USER_ROLE))
+                .thenThrow(new GameDefinitionNotFoundException(missingId));
 
-        assertThatThrownBy(() -> service.listByGameDefinition(missingId))
+        assertThatThrownBy(() -> service.listByGameDefinition(missingId, ACTING_USER_ID, ACTING_USER_ROLE))
                 .isInstanceOf(GameDefinitionNotFoundException.class);
         verifyNoInteractions(repository);
     }

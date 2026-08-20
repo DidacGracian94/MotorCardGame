@@ -2,6 +2,7 @@ package com.motorcardgame.app.auth.infrastructure.persistence;
 
 import com.motorcardgame.app.auth.domain.User;
 import com.motorcardgame.app.auth.domain.UserRepository;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
@@ -41,6 +42,11 @@ class UserRepositoryAdapter implements UserRepository {
         return springDataRepository.existsByEmail(email);
     }
 
+    @Override
+    public List<User> findAll() {
+        return springDataRepository.findAll().stream().map(UserRepositoryAdapter::toDomain).toList();
+    }
+
     private static UserJpaEntity toEntity(User domain) {
         return new UserJpaEntity(
                 domain.id(),
@@ -48,6 +54,7 @@ class UserRepositoryAdapter implements UserRepository {
                 domain.passwordHash(),
                 domain.googleSubject(),
                 domain.displayName(),
+                domain.role(),
                 domain.createdAt(),
                 domain.updatedAt());
     }
@@ -59,6 +66,7 @@ class UserRepositoryAdapter implements UserRepository {
                 entity.getPasswordHash(),
                 entity.getGoogleSubject(),
                 entity.getDisplayName(),
+                entity.getRole(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

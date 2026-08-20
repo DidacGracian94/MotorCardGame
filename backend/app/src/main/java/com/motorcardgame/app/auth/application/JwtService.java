@@ -1,5 +1,6 @@
 package com.motorcardgame.app.auth.application;
 
+import com.motorcardgame.app.auth.domain.Role;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -54,21 +55,24 @@ public class JwtService {
         this.refreshTokenTtl = Duration.ofDays(refreshTokenTtlDays);
     }
 
-    public String issueAccessToken(UUID userId) {
+    public String issueAccessToken(UUID userId, Role role) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(userId.toString())
+                .claim("role", role.name())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(accessTokenTtl)))
                 .signWith(privateKey, Jwts.SIG.RS256)
                 .compact();
     }
 
-    public Optional<UUID> validateAccessToken(String token) {
+    public Optional<TokenClaims> validateAccessToken(String token) {
         try {
             Claims claims = Jwts.parser().verifyWith(publicKey).build().parseSignedClaims(token).getPayload();
-            return Optional.of(UUID.fromString(claims.getSubject()));
-        } catch (JwtException | IllegalArgumentException e) {
+            UUID userId = UUID.fromString(claims.getSubject());
+            Role role = Role.valueOf(claims.get("role", String.class));
+            return Optional.of(new TokenClaims(userId, role));
+        } catch (JwtException | IllegalArgumentException | NullPointerException e) {
             return Optional.empty();
         }
     }

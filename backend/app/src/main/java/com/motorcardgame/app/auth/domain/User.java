@@ -11,6 +11,7 @@ public final class User {
     private String passwordHash;
     private String googleSubject;
     private String displayName;
+    private Role role;
     private final Instant createdAt;
     private Instant updatedAt;
 
@@ -20,6 +21,7 @@ public final class User {
             String passwordHash,
             String googleSubject,
             String displayName,
+            Role role,
             Instant createdAt,
             Instant updatedAt) {
         this.id = id;
@@ -27,18 +29,19 @@ public final class User {
         this.passwordHash = passwordHash;
         this.googleSubject = googleSubject;
         this.displayName = displayName;
+        this.role = role;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
     public static User registerWithPassword(String email, String passwordHash, String displayName) {
         Instant now = Instant.now();
-        return new User(UUID.randomUUID(), email, passwordHash, null, displayName, now, now);
+        return new User(UUID.randomUUID(), email, passwordHash, null, displayName, Role.USER, now, now);
     }
 
     public static User registerWithGoogle(String email, String googleSubject, String displayName) {
         Instant now = Instant.now();
-        return new User(UUID.randomUUID(), email, null, googleSubject, displayName, now, now);
+        return new User(UUID.randomUUID(), email, null, googleSubject, displayName, Role.USER, now, now);
     }
 
     public static User reconstitute(
@@ -47,13 +50,19 @@ public final class User {
             String passwordHash,
             String googleSubject,
             String displayName,
+            Role role,
             Instant createdAt,
             Instant updatedAt) {
-        return new User(id, email, passwordHash, googleSubject, displayName, createdAt, updatedAt);
+        return new User(id, email, passwordHash, googleSubject, displayName, role, createdAt, updatedAt);
     }
 
     public void linkGoogleSubject(String googleSubject) {
         this.googleSubject = Objects.requireNonNull(googleSubject, "googleSubject");
+        this.updatedAt = Instant.now();
+    }
+
+    public void changeRole(Role newRole) {
+        this.role = Objects.requireNonNull(newRole, "newRole");
         this.updatedAt = Instant.now();
     }
 
@@ -75,6 +84,10 @@ public final class User {
 
     public String displayName() {
         return displayName;
+    }
+
+    public Role role() {
+        return role;
     }
 
     public Instant createdAt() {

@@ -6,8 +6,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.motorcardgame.app.auth.domain.Role;
 import com.motorcardgame.app.gamedefinition.domain.GameDefinition;
 import com.motorcardgame.app.gamedefinition.domain.GameDefinitionRepository;
+import com.motorcardgame.app.gamedefinition.domain.GameDefinitionVisibility;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +43,7 @@ class GameDefinitionServiceTest {
         assertThat(created.ownerId()).isEqualTo(ownerId);
         assertThat(created.name()).isEqualTo("Mi Juego");
         assertThat(created.slug()).isEqualTo("mi-juego");
+        assertThat(created.visibility()).isEqualTo(GameDefinitionVisibility.PRIVATE);
 
         ArgumentCaptor<GameDefinition> captor = ArgumentCaptor.forClass(GameDefinition.class);
         verify(repository).save(captor.capture());
@@ -76,14 +79,69 @@ class GameDefinitionServiceTest {
     }
 
     @Test
-    void rename_updatesNameAndPersists() {
+    void rename_updatesNameAndPersists_whenActingUserIsOwner() {
+        UUID ownerId = UUID.randomUUID();
+        GameDefinition existing = GameDefinition.create(ownerId, "Nombre Viejo", "mi-juego");
+        when(repository.findById(existing.id())).thenReturn(Optional.of(existing));
+        when(repository.save(any(GameDefinition.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        GameDefinition renamed = service.rename(existing.id(), "Nombre Nuevo", ownerId, Role.USER);
+
+        assertThat(renamed.name()).isEqualTo("Nombre Nuevo");
+        verify(repository).save(existing);
+    }
+
+    @Test
+    void rename_updatesNameAndPersists_whenActingUserIsAdmin() {
         GameDefinition existing = GameDefinition.create(UUID.randomUUID(), "Nombre Viejo", "mi-juego");
         when(repository.findById(existing.id())).thenReturn(Optional.of(existing));
         when(repository.save(any(GameDefinition.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        GameDefinition renamed = service.rename(existing.id(), "Nombre Nuevo");
+        GameDefinition renamed = service.rename(existing.id(), "Nombre Nuevo", UUID.randomUUID(), Role.ADMIN);
 
         assertThat(renamed.name()).isEqualTo("Nombre Nuevo");
-        verify(repository).save(existing);
+    }
+
+    @Test
+    void rename_throwsAccessDenied_whenActingUserIsNeitherOwnerNorAdmin() {
+        GameDefinition existing = GameDefinition.create(UUID.randomUUID(), "Nombre Viejo", "mi-juego");
+        when(repository.findById(existing.id())).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.rename(existing.id(), "Nombre Nuevo", UUID.randomUUID(), Role.USER))
+                .isInstanceOf(GameDefinitionAccessDeniedException.class);
+    }
+
+    @Test
+    void assertVisible_throwsAccessDenied_whenPrivateAndNotOwnerNorAdmin() {
+        GameDefinition existing = GameDefinition.create(UUID.randomUUID(), "Mi Juego", "mi-juego");
+        when(repository.findById(existing.id())).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> service.assertVisible(existing.id(), UUID.randomUUID(), Role.USER))
+                .isInstanceOf(GameDefinitionAccessDeniedException.class);
+    }
+
+    @Test
+    void assertVisible_returnsDefinition_whenPublicAndNotOwner() {
+        GameDefinition existing = GameDefinition.create(UUID.randomUUID(), "Mi Juego", "mi-juego");
+        existing.changeVisibility(GameDefinitionVisibility.PUBLIC);
+        when(repository.findById(existing.id())).thenReturn(Optional.of(existing));
+
+        GameDefinition visible = service.assertVisible(existing.id(), UUID.randomUUID(), Role.USER);
+
+        assertThat(visible).isEqualTo(existing);
+    }
+
+    @Test
+    void listVisibleTo_returnsFindAll_whenAdmin() {
+        UUID adminId = UUID.randomUUID();
+        service.listVisibleTo(adminId, Role.ADMIN);
+        verify(repository).findAll();
+    }
+
+    @Test
+    void listVisibleTo_returnsFindVisibleTo_whenNormalUser() {
+        UUID userId = UUID.randomUUID();
+        service.listVisibleTo(userId, Role.USER);
+        verify(repository).findVisibleTo(userId);
     }
 }

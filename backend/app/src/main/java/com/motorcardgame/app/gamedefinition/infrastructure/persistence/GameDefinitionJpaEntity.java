@@ -1,7 +1,10 @@
 package com.motorcardgame.app.gamedefinition.infrastructure.persistence;
 
+import com.motorcardgame.app.gamedefinition.domain.GameDefinitionVisibility;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
@@ -23,6 +26,10 @@ public class GameDefinitionJpaEntity {
     @Column(nullable = false)
     private String slug;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private GameDefinitionVisibility visibility;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -33,11 +40,19 @@ public class GameDefinitionJpaEntity {
         // requerido por JPA
     }
 
-    public GameDefinitionJpaEntity(UUID id, UUID ownerId, String name, String slug, Instant createdAt, Instant updatedAt) {
+    public GameDefinitionJpaEntity(
+            UUID id,
+            UUID ownerId,
+            String name,
+            String slug,
+            GameDefinitionVisibility visibility,
+            Instant createdAt,
+            Instant updatedAt) {
         this.id = id;
         this.ownerId = ownerId;
         this.name = name;
         this.slug = slug;
+        this.visibility = visibility;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -56,6 +71,10 @@ public class GameDefinitionJpaEntity {
 
     public String getSlug() {
         return slug;
+    }
+
+    public GameDefinitionVisibility getVisibility() {
+        return visibility;
     }
 
     public Instant getCreatedAt() {

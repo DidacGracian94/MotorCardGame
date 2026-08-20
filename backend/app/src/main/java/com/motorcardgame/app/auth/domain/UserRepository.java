@@ -1,5 +1,6 @@
 package com.motorcardgame.app.auth.domain;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,4 +15,6 @@ public interface UserRepository {
     Optional<User> findByGoogleSubject(String googleSubject);
 
     boolean existsByEmail(String email);
+
+    List<User> findAll();
 }

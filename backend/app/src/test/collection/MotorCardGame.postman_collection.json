@@ -172,6 +172,65 @@
       ]
     },
     {
+      "name": "Admin",
+      "description": "Solo accesible con role=ADMIN. El primer admin se promueve a mano en Postgres (UPDATE users SET role='ADMIN' WHERE email=...) y vuelve a hacer Login aquí para que el JWT lleve el rol nuevo; a partir de ahí, Change user role sirve para promover a otros sin tocar SQL.",
+      "item": [
+        {
+          "name": "Get all users",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/admin/users", "host": ["{{baseUrl}}"], "path": ["api", "admin", "users"] }
+          }
+        },
+        {
+          "name": "Change user role",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 200', () => pm.response.to.have.status(200));"] }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"role\": \"ADMIN\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{$guid}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{$guid}}", "role"]
+            },
+            "description": "Sustituye {{$guid}} por el id de un usuario real (de la respuesta de 'Get all users'). role acepta ADMIN o USER."
+          }
+        },
+        {
+          "name": "[Error] Change user role - 403 sin ser admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 403', () => pm.response.to.have.status(403));"] }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"role\": \"ADMIN\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/{{$guid}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "{{$guid}}", "role"]
+            },
+            "description": "Con {{accessToken}} de un usuario normal (no admin), 403."
+          }
+        }
+      ]
+    },
+    {
       "name": "GameDefinition",
       "item": [
         {
@@ -229,6 +288,20 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "game-definitions", "{{gameDefinitionId}}"]
             }
+          }
+        },
+        {
+          "name": "Change visibility",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"visibility\": \"PUBLIC\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/game-definitions/{{gameDefinitionId}}/visibility",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "game-definitions", "{{gameDefinitionId}}", "visibility"]
+            },
+            "description": "Solo el owner o un admin puede cambiarla. visibility acepta PRIVATE o PUBLIC."
           }
         },
         {

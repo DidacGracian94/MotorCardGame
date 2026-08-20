@@ -2,6 +2,7 @@ package com.motorcardgame.app.gamedefinition.version.web;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.motorcardgame.app.auth.application.TokenClaims;
 import com.motorcardgame.app.gamedefinition.version.application.GameDefinitionVersionService;
 import com.motorcardgame.app.gamedefinition.version.domain.GameDefinitionVersion;
 import com.motorcardgame.app.gamedefinition.version.web.dto.GameDefinitionVersionResponse;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,7 +39,9 @@ public class GameDefinitionVersionController {
             @PathVariable UUID gameDefinitionId, @Valid @RequestBody PublishGameDefinitionVersionRequest request)
             throws JsonProcessingException {
         String configJson = objectMapper.writeValueAsString(request.config());
-        GameDefinitionVersion published = gameDefinitionVersionService.publish(gameDefinitionId, configJson);
+        TokenClaims principal = currentPrincipal();
+        GameDefinitionVersion published = gameDefinitionVersionService.publish(
+                gameDefinitionId, configJson, principal.userId(), principal.role());
         GameDefinitionVersionResponse body = toResponse(published);
         return ResponseEntity.created(URI.create(
                         "/api/game-definitions/" + gameDefinitionId + "/versions/" + body.versionNumber()))
@@ -47,8 +51,10 @@ public class GameDefinitionVersionController {
     @GetMapping
     public List<GameDefinitionVersionResponse> listAll(@PathVariable UUID gameDefinitionId)
             throws JsonProcessingException {
+        TokenClaims principal = currentPrincipal();
         List<GameDefinitionVersionResponse> responses = new ArrayList<>();
-        for (GameDefinitionVersion version : gameDefinitionVersionService.listByGameDefinition(gameDefinitionId)) {
+        for (GameDefinitionVersion version : gameDefinitionVersionService.listByGameDefinition(
+                gameDefinitionId, principal.userId(), principal.role())) {
             responses.add(toResponse(version));
         }
         return responses;
@@ -57,7 +63,9 @@ public class GameDefinitionVersionController {
     @GetMapping("/{versionNumber}")
     public GameDefinitionVersionResponse getByVersionNumber(
             @PathVariable UUID gameDefinitionId, @PathVariable int versionNumber) throws JsonProcessingException {
-        return toResponse(gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, versionNumber));
+        TokenClaims principal = currentPrincipal();
+        return toResponse(gameDefinitionVersionService.getByVersionNumber(
+                gameDefinitionId, versionNumber, principal.userId(), principal.role()));
     }
 
     private GameDefinitionVersionResponse toResponse(GameDefinitionVersion version) throws JsonProcessingException {
@@ -68,5 +76,9 @@ public class GameDefinitionVersionController {
                 objectMapper.readTree(version.config()),
                 version.createdAt(),
                 version.publishedAt());
+    }
+
+    private static TokenClaims currentPrincipal() {
+        return (TokenClaims) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

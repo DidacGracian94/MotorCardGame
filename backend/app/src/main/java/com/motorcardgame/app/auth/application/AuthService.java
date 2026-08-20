@@ -96,7 +96,7 @@ public class AuthService {
     }
 
     private AuthResult issueTokens(User user) {
-        String accessToken = jwtService.issueAccessToken(user.id());
+        String accessToken = jwtService.issueAccessToken(user.id(), user.role());
         String rawRefreshToken = jwtService.generateRefreshTokenValue();
         String hash = jwtService.hashRefreshToken(rawRefreshToken);
         Instant expiresAt = Instant.now().plus(jwtService.refreshTokenTtl());

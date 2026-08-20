@@ -1,14 +1,19 @@
 package com.motorcardgame.app.gamedefinition.web;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.motorcardgame.app.auth.domain.Role;
+import com.motorcardgame.app.gamedefinition.web.dto.ChangeVisibilityRequest;
 import com.motorcardgame.app.gamedefinition.web.dto.CreateGameDefinitionRequest;
 import com.motorcardgame.app.gamedefinition.web.dto.RenameGameDefinitionRequest;
+import com.motorcardgame.app.gamedefinition.domain.GameDefinitionVisibility;
+import com.motorcardgame.app.testsupport.TestAuth;
 import com.motorcardgame.app.testsupport.WithMockUserId;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -112,5 +117,86 @@ class GameDefinitionControllerIntegrationTest {
         mockMvc.perform(get("/api/game-definitions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id=='" + id + "')].name").value("Nombre Nuevo"));
+    }
+
+    private String createDefinition(String slug) throws Exception {
+        String body = mockMvc.perform(post("/api/game-definitions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new CreateGameDefinitionRequest("Mi Juego", slug))))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        return objectMapper.readTree(body).get("id").asText();
+    }
+
+    @Test
+    void getById_returnsForbidden_whenPrivateAndAccessedByAnotherUser() throws Exception {
+        String id = createDefinition("privada-de-otro");
+
+        mockMvc.perform(get("/api/game-definitions/{id}", id).with(TestAuth.as(UUID.randomUUID(), Role.USER)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getById_returnsOk_whenPublicAndAccessedByAnotherUser() throws Exception {
+        String id = createDefinition("publica-de-otro");
+        mockMvc.perform(patch("/api/game-definitions/{id}/visibility", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new ChangeVisibilityRequest(GameDefinitionVisibility.PUBLIC))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/game-definitions/{id}", id).with(TestAuth.as(UUID.randomUUID(), Role.USER)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getById_returnsOk_whenPrivateAndAccessedByAdmin() throws Exception {
+        String id = createDefinition("privada-vista-por-admin");
+
+        mockMvc.perform(get("/api/game-definitions/{id}", id).with(TestAuth.as(UUID.randomUUID(), Role.ADMIN)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void rename_returnsForbidden_whenActingUserIsNeitherOwnerNorAdmin() throws Exception {
+        String id = createDefinition("ajena-no-editable");
+
+        mockMvc.perform(put("/api/game-definitions/{id}", id)
+                        .with(TestAuth.as(UUID.randomUUID(), Role.USER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RenameGameDefinitionRequest("Hackeado"))))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void rename_succeeds_whenActingUserIsAdmin() throws Exception {
+        String id = createDefinition("ajena-editable-por-admin");
+
+        mockMvc.perform(put("/api/game-definitions/{id}", id)
+                        .with(TestAuth.as(UUID.randomUUID(), Role.ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new RenameGameDefinitionRequest("Renombrada por admin"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Renombrada por admin"));
+    }
+
+    @Test
+    void listAll_excludesPrivateDefinitionsOfOtherUsers_forNormalUser() throws Exception {
+        String privateId = createDefinition("privada-excluida-del-listado");
+
+        mockMvc.perform(get("/api/game-definitions").with(TestAuth.as(UUID.randomUUID(), Role.USER)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + privateId + "')]").isEmpty());
+    }
+
+    @Test
+    void listAll_includesEverything_forAdmin() throws Exception {
+        String privateId = createDefinition("privada-visible-para-admin-en-listado");
+
+        mockMvc.perform(get("/api/game-definitions").with(TestAuth.as(UUID.randomUUID(), Role.ADMIN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id=='" + privateId + "')]").isNotEmpty());
     }
 }

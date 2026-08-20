@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, CreateGameDefinitionRequest } from '@/api/client'
+import { api, CreateGameDefinitionRequest, GameDefinitionVisibility } from '@/api/client'
 
 const GAME_DEFINITIONS_KEY = ['gameDefinitions']
 const GAME_DEFINITION_VERSIONS_KEY = (id: string) => [
@@ -36,6 +36,17 @@ export function useRenameGameDefinition() {
       queryClient.invalidateQueries({
         queryKey: GAME_DEFINITION_VERSIONS_KEY(id),
       })
+    },
+  })
+}
+
+export function useSetGameDefinitionVisibility() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, visibility }: { id: string; visibility: GameDefinitionVisibility }) =>
+      api.gameDefinitions.setVisibility(id, visibility),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: GAME_DEFINITIONS_KEY })
     },
   })
 }

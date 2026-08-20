@@ -2,6 +2,7 @@ package com.motorcardgame.app.gamedefinition.infrastructure.persistence;
 
 import com.motorcardgame.app.gamedefinition.domain.GameDefinition;
 import com.motorcardgame.app.gamedefinition.domain.GameDefinitionRepository;
+import com.motorcardgame.app.gamedefinition.domain.GameDefinitionVisibility;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,12 +40,20 @@ class GameDefinitionRepositoryAdapter implements GameDefinitionRepository {
         return springDataRepository.existsByOwnerIdAndSlug(ownerId, slug);
     }
 
+    @Override
+    public List<GameDefinition> findVisibleTo(UUID ownerId) {
+        return springDataRepository.findByOwnerIdOrVisibility(ownerId, GameDefinitionVisibility.PUBLIC).stream()
+                .map(GameDefinitionRepositoryAdapter::toDomain)
+                .toList();
+    }
+
     private static GameDefinitionJpaEntity toEntity(GameDefinition domain) {
         return new GameDefinitionJpaEntity(
                 domain.id(),
                 domain.ownerId(),
                 domain.name(),
                 domain.slug(),
+                domain.visibility(),
                 domain.createdAt(),
                 domain.updatedAt());
     }
@@ -55,6 +64,7 @@ class GameDefinitionRepositoryAdapter implements GameDefinitionRepository {
                 entity.getOwnerId(),
                 entity.getName(),
                 entity.getSlug(),
+                entity.getVisibility(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt());
     }

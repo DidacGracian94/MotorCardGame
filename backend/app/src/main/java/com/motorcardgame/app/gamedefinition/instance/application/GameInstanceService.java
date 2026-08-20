@@ -1,5 +1,6 @@
 package com.motorcardgame.app.gamedefinition.instance.application;
 
+import com.motorcardgame.app.auth.domain.Role;
 import com.motorcardgame.app.gamedefinition.application.GameDefinitionService;
 import com.motorcardgame.app.gamedefinition.instance.domain.GameInstance;
 import com.motorcardgame.app.gamedefinition.instance.domain.GameInstanceRepository;
@@ -57,8 +58,14 @@ public class GameInstanceService {
      * una ruta especial — y persiste el resultado serializado.
      */
     @Transactional
-    public GameInstance create(UUID gameDefinitionId, int versionNumber, List<Player> players) {
-        GameDefinitionVersion version = gameDefinitionVersionService.getByVersionNumber(gameDefinitionId, versionNumber);
+    public GameInstance create(
+            UUID gameDefinitionId,
+            int versionNumber,
+            List<Player> players,
+            UUID actingUserId,
+            Role actingUserRole) {
+        GameDefinitionVersion version = gameDefinitionVersionService.getByVersionNumber(
+                gameDefinitionId, versionNumber, actingUserId, actingUserRole);
         List<Rule> rules = ruleSetParser.parse(version.config());
         GameState state = gameSetupParser.buildInitialState(version.config(), players);
         new RuleEngine(rules).handle(Event.of("GAME_STARTED"), state);
@@ -107,8 +114,8 @@ public class GameInstanceService {
     }
 
     @Transactional(readOnly = true)
-    public List<GameInstance> listByGameDefinition(UUID gameDefinitionId) {
-        gameDefinitionService.getById(gameDefinitionId);
+    public List<GameInstance> listByGameDefinition(UUID gameDefinitionId, UUID actingUserId, Role actingUserRole) {
+        gameDefinitionService.assertVisible(gameDefinitionId, actingUserId, actingUserRole);
         return repository.findByGameDefinitionId(gameDefinitionId);
     }
 }
