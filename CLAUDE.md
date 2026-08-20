@@ -206,12 +206,33 @@ puede requerir bump de versión (patch/minor/major según compatibilidad).
 
 ## Estado actual
 
-Repositorio vacío, sin scaffold todavío. Próximo hito: **M0 — andamiaje** (Maven multi-módulo,
-Spring Boot arrancando, Flyway baseline, React+Vite arrancando, docker-compose con Postgres).
-
 Hoja de ruta completa (M0–M11, con criterios de salida por hito): ver el plan de arquitectura
 publicado — pedir a Claude que lo recupere si hace falta releerlo (fue publicado como artifact en
 una sesión anterior de Claude Code).
+
+**Hechos**: M0 (andamiaje) · M1 (modelo de dominio) · M2 (registries + motor) · M3/M4 (persistencia
+y validación de definiciones) · M6 (WebSocket con canal público + cola privada por jugador) · M7
+(frontend biblioteca + partida jugable en el navegador) · M8 (editor visual + `/api/capabilities`).
+Auth propia (email/contraseña) + login con Google, JWT RS256, todos los endpoints `/api/**`
+protegidos salvo `/api/auth/**` — no estaba en la hoja de ruta original con este alcance, se hizo
+por necesidad de tener un frontal usable.
+
+**M5 (API REST) incompleto**: falta la parte de "biblioteca pública" — `game_definitions` no tiene
+columna `visibility`/`status`, no hay endpoint de publicar (PRIVATE→PUBLIC) ni de duplicar una
+definición ajena; `listAll()` devuelve todas las definiciones de todos los usuarios sin filtrar.
+
+**Huecos conocidos**:
+- Ninguna capacidad de motor para condición de victoria / fin de partida (`ADD_POINTS`, detectar
+  ganador, marcar `ended_at`) — sin esto UNO no se puede jugar hasta el final de verdad.
+- **M9** (juego inventado solo con el editor, prueba de generalización), **M10** (Brisca — palos,
+  triunfo, comparación de cartas) y **M11** (Escoba — captura múltiple, historial/replay desde
+  `game_events`, que tampoco existe como tabla todavía) sin empezar.
+- Sin autorización por dueño (cualquier usuario logueado puede renombrar/publicar sobre una
+  `GameDefinition` ajena — solo se fija quién es el owner al crearla).
+- Sin FK `game_definitions.owner_id → users.id`, sin *optimistic locking* en `GameInstance`.
+- `playerId` de una partida (asiento) sigue sin ligarse a una cuenta de usuario — es intencional
+  (ver el módulo `auth`), pero significa que no hay control de quién puede actuar como qué jugador
+  más allá del `playerId` de texto libre.
 
 ## Referencias útiles
 

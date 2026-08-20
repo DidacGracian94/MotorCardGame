@@ -57,32 +57,53 @@ class GameInstanceRealtimeIntegrationTest {
     private ObjectMapper objectMapper;
 
     private WebSocketStompClient stompClient;
+    private String accessToken;
 
     @BeforeEach
     void setUp() {
         stompClient = new WebSocketStompClient(new StandardWebSocketClient());
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
+        accessToken = registerAndGetAccessToken();
     }
 
     private String httpUrl(String path) {
         return "http://localhost:" + port + path;
     }
 
+    private String registerAndGetAccessToken() {
+        Map<String, Object> request = Map.of(
+                "email", "realtime-" + UUID.randomUUID() + "@example.com",
+                "password", "correct-horse-battery-staple",
+                "displayName", "Realtime Test User");
+        ResponseEntity<Map> response = restTemplate.postForEntity(httpUrl("/api/auth/register"), request, Map.class);
+        return (String) response.getBody().get("accessToken");
+    }
+
+    private HttpEntity<Map<String, Object>> authenticated(Map<String, Object> body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(accessToken);
+        return new HttpEntity<>(body, headers);
+    }
+
     private UUID createGameDefinition(String slug) {
-        Map<String, Object> request = Map.of("ownerId", UUID.randomUUID().toString(), "name", "Mi Juego", "slug", slug);
-        ResponseEntity<Map> response = restTemplate.postForEntity(httpUrl("/api/game-definitions"), request, Map.class);
+        Map<String, Object> request = Map.of("name", "Mi Juego", "slug", slug);
+        ResponseEntity<Map> response =
+                restTemplate.postForEntity(httpUrl("/api/game-definitions"), authenticated(request), Map.class);
         return UUID.fromString((String) response.getBody().get("id"));
     }
 
     private void publishVersion(UUID gameDefinitionId, Object config) {
         restTemplate.postForEntity(
-                httpUrl("/api/game-definitions/" + gameDefinitionId + "/versions"), Map.of("config", config), Map.class);
+                httpUrl("/api/game-definitions/" + gameDefinitionId + "/versions"),
+                authenticated(Map.of("config", config)),
+                Map.class);
     }
 
     private UUID createInstance(UUID gameDefinitionId, Object players) {
         ResponseEntity<Map> response = restTemplate.postForEntity(
                 httpUrl("/api/game-definitions/" + gameDefinitionId + "/instances"),
-                Map.of("versionNumber", 1, "players", players),
+                authenticated(Map.of("versionNumber", 1, "players", players)),
                 Map.class);
         return UUID.fromString((String) response.getBody().get("id"));
     }
@@ -105,7 +126,8 @@ class GameInstanceRealtimeIntegrationTest {
     }
 
     private StompSession connect(String playerId) throws Exception {
-        String url = "ws://localhost:" + port + "/ws" + (playerId == null ? "" : "?playerId=" + playerId);
+        String query = "?token=" + accessToken + (playerId == null ? "" : "&playerId=" + playerId);
+        String url = "ws://localhost:" + port + "/ws" + query;
         return stompClient.connectAsync(url, new StompSessionHandlerAdapter() {}).get(5, TimeUnit.SECONDS);
     }
 
@@ -142,10 +164,8 @@ class GameInstanceRealtimeIntegrationTest {
         // da tiempo a que las suscripciones lleguen al broker antes de disparar la acción
         Thread.sleep(300);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, Object>> actionRequest = new HttpEntity<>(
-                Map.of("playerId", "alice", "eventType", "PLAYER_REQUESTED_DRAW"), headers);
+        HttpEntity<Map<String, Object>> actionRequest =
+                authenticated(Map.of("playerId", "alice", "eventType", "PLAYER_REQUESTED_DRAW"));
         restTemplate.postForEntity(httpUrl("/api/instances/" + instanceId + "/actions"), actionRequest, Map.class);
 
         Map alicePayload = alicePrivate.get(5, TimeUnit.SECONDS);

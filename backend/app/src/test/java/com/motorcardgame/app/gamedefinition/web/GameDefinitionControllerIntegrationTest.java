@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.motorcardgame.app.gamedefinition.web.dto.CreateGameDefinitionRequest;
 import com.motorcardgame.app.gamedefinition.web.dto.RenameGameDefinitionRequest;
+import com.motorcardgame.app.testsupport.WithMockUserId;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUserId
 class GameDefinitionControllerIntegrationTest {
 
     @Container
@@ -38,8 +40,7 @@ class GameDefinitionControllerIntegrationTest {
 
     @Test
     void createThenGetById_returnsCreatedGameDefinition() throws Exception {
-        CreateGameDefinitionRequest request =
-                new CreateGameDefinitionRequest(UUID.randomUUID(), "Mi Juego", "mi-juego-integration");
+        CreateGameDefinitionRequest request = new CreateGameDefinitionRequest("Mi Juego", "mi-juego-integration");
 
         String createdBody = mockMvc.perform(post("/api/game-definitions")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -60,8 +61,7 @@ class GameDefinitionControllerIntegrationTest {
 
     @Test
     void create_returnsConflict_whenSlugAlreadyExists() throws Exception {
-        CreateGameDefinitionRequest request =
-                new CreateGameDefinitionRequest(UUID.randomUUID(), "Duplicado", "slug-duplicado");
+        CreateGameDefinitionRequest request = new CreateGameDefinitionRequest("Duplicado", "slug-duplicado");
 
         mockMvc.perform(post("/api/game-definitions")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -76,8 +76,7 @@ class GameDefinitionControllerIntegrationTest {
 
     @Test
     void create_returnsBadRequest_whenSlugHasInvalidFormat() throws Exception {
-        CreateGameDefinitionRequest request =
-                new CreateGameDefinitionRequest(UUID.randomUUID(), "Mi Juego", "Slug Invalido!");
+        CreateGameDefinitionRequest request = new CreateGameDefinitionRequest("Mi Juego", "Slug Invalido!");
 
         mockMvc.perform(post("/api/game-definitions")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -93,8 +92,7 @@ class GameDefinitionControllerIntegrationTest {
 
     @Test
     void rename_updatesNameAndListIncludesIt() throws Exception {
-        CreateGameDefinitionRequest createRequest =
-                new CreateGameDefinitionRequest(UUID.randomUUID(), "Nombre Viejo", "mi-juego-rename");
+        CreateGameDefinitionRequest createRequest = new CreateGameDefinitionRequest("Nombre Viejo", "mi-juego-rename");
 
         String createdBody = mockMvc.perform(post("/api/game-definitions")
                         .contentType(MediaType.APPLICATION_JSON)

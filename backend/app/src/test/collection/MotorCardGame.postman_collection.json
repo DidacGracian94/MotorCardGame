@@ -5,15 +5,172 @@
     "description": "Requests manuales para probar los endpoints de GameDefinition y GameDefinitionVersion contra una instancia local de app (mvn spring-boot:run -pl backend/app).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "gameDefinitionId", "value": "" },
     { "key": "versionNumber", "value": "" },
     { "key": "gameInstanceId", "value": "" },
     { "key": "aliceCardId", "value": "" },
-    { "key": "aliceSecondCardId", "value": "" }
+    { "key": "aliceSecondCardId", "value": "" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" }
   ],
   "item": [
+    {
+      "name": "Auth",
+      "description": "Todos los requests de este proyecto exigen JWT (Authorization: Bearer {{accessToken}}) salvo estos, que son los que lo consiguen. La colección hereda auth bearer con {{accessToken}} a nivel raíz, así que en cuanto se ejecuta Register o Login aquí, el resto de carpetas queda autenticado automáticamente.",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', body.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', body.refreshToken);",
+                  "pm.test('has user', () => pm.expect(body.user.email).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice-{{$timestamp}}@example.com\",\n  \"password\": \"correct-horse-battery-staple\",\n  \"displayName\": \"Alice\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', body.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', body.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alice-{{$timestamp}}@example.com\",\n  \"password\": \"correct-horse-battery-staple\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] },
+            "description": "Usa un email ya registrado (edita el body) — el de la request Register de arriba lleva {{$timestamp}} y cambia en cada ejecución."
+          }
+        },
+        {
+          "name": "Refresh",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', body.accessToken);",
+                  "pm.collectionVariables.set('refreshToken', body.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/refresh", "host": ["{{baseUrl}}"], "path": ["api", "auth", "refresh"] },
+            "description": "Rota el refresh token: el usado queda revocado, se guarda el nuevo par."
+          }
+        },
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 204', () => pm.response.to.have.status(204));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api", "auth", "logout"] }
+          }
+        },
+        {
+          "name": "[Error] Login - 401 credenciales incorrectas",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 401', () => pm.response.to.have.status(401));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"no-existe@example.com\",\n  \"password\": \"lo-que-sea\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"] }
+          }
+        },
+        {
+          "name": "[Error] Register - 409 email duplicado",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 409', () => pm.response.to.have.status(409));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"duplicado-fijo@example.com\",\n  \"password\": \"correct-horse-battery-staple\",\n  \"displayName\": \"Duplicado\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+            "description": "Ejecutar esta request DOS veces seguidas: la primera crea (201), la segunda choca con el email fijo (409)."
+          }
+        },
+        {
+          "name": "[Error] Protected endpoint - 401 sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 401', () => pm.response.to.have.status(401));"] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/game-definitions", "host": ["{{baseUrl}}"], "path": ["api", "game-definitions"] },
+            "description": "Sin cabecera Authorization, cualquier endpoint fuera de /api/auth/** devuelve 401."
+          }
+        }
+      ]
+    },
     {
       "name": "GameDefinition",
       "item": [
@@ -38,7 +195,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ownerId\": \"{{$guid}}\",\n  \"name\": \"UNO\",\n  \"slug\": \"uno-{{$timestamp}}\"\n}"
+              "raw": "{\n  \"name\": \"UNO\",\n  \"slug\": \"uno-{{$timestamp}}\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/game-definitions", "host": ["{{baseUrl}}"], "path": ["api", "game-definitions"] }
           }
@@ -104,7 +261,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ownerId\": \"{{$guid}}\",\n  \"name\": \"Juego Inválido\",\n  \"slug\": \"Slug Con Mayúsculas!\"\n}"
+              "raw": "{\n  \"name\": \"Juego Inválido\",\n  \"slug\": \"Slug Con Mayúsculas!\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/game-definitions", "host": ["{{baseUrl}}"], "path": ["api", "game-definitions"] }
           }
@@ -122,7 +279,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"ownerId\": \"{{$guid}}\",\n  \"name\": \"Duplicado\",\n  \"slug\": \"slug-duplicado-fijo\"\n}"
+              "raw": "{\n  \"name\": \"Duplicado\",\n  \"slug\": \"slug-duplicado-fijo\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/game-definitions", "host": ["{{baseUrl}}"], "path": ["api", "game-definitions"] },
             "description": "Ejecutar esta request DOS veces seguidas: la primera crea (201), la segunda choca con el slug fijo (409)."

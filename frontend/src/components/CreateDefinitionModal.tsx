@@ -17,7 +17,6 @@ export default function CreateDefinitionModal({ open, onOpenChange }: Props) {
   const schema = useMemo(
     () =>
       z.object({
-        ownerId: z.string().uuid(t('createDefinition.errors.ownerIdInvalid')),
         name: z.string().min(1, t('common.errors.nameRequired')).max(120),
         slug: z
           .string()
@@ -32,16 +31,13 @@ export default function CreateDefinitionModal({ open, onOpenChange }: Props) {
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      ownerId: crypto.randomUUID(),
-    },
   })
   const createMutation = useCreateGameDefinition()
 
   const onSubmit = async (data: FormData) => {
     try {
       await createMutation.mutateAsync(data)
-      reset({ ownerId: crypto.randomUUID(), name: '', slug: '' })
+      reset({ name: '', slug: '' })
       onOpenChange(false)
     } catch {
       // surfaced via createMutation.error below
@@ -51,24 +47,6 @@ export default function CreateDefinitionModal({ open, onOpenChange }: Props) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={t('createDefinition.title')}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-900 mb-1">
-            {t('createDefinition.ownerIdLabel')}
-          </label>
-          <input
-            {...register('ownerId')}
-            type="text"
-            placeholder={t('createDefinition.ownerIdPlaceholder')}
-            className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <p className="mt-1 text-xs text-slate-500">
-            {t('createDefinition.ownerIdHelp')}
-          </p>
-          {errors.ownerId && (
-            <p className="mt-1 text-sm text-red-600">{errors.ownerId.message}</p>
-          )}
-        </div>
-
         <div>
           <label className="block text-sm font-medium text-slate-900 mb-1">
             {t('common.name')}

@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.motorcardgame.app.gamedefinition.web.dto.CreateGameDefinitionRequest;
 import com.motorcardgame.app.gamedefinition.web.dto.GameDefinitionResponse;
+import com.motorcardgame.app.testsupport.WithMockUserId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,6 +26,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUserId
 class GameDefinitionVersionControllerIntegrationTest {
 
     @Container
@@ -38,7 +40,7 @@ class GameDefinitionVersionControllerIntegrationTest {
     private ObjectMapper objectMapper;
 
     private UUID createGameDefinition(String slug) throws Exception {
-        CreateGameDefinitionRequest request = new CreateGameDefinitionRequest(UUID.randomUUID(), "Mi Juego", slug);
+        CreateGameDefinitionRequest request = new CreateGameDefinitionRequest("Mi Juego", slug);
         String body = mockMvc.perform(post("/api/game-definitions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))

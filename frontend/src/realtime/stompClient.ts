@@ -1,5 +1,6 @@
 import { Client, IMessage } from '@stomp/stompjs'
 import { GameInstanceDto } from '@/api/client'
+import { getAccessToken } from '@/auth/tokenStore'
 
 export interface GameInstanceRealtimeHandlers {
   onSnapshot: (snapshot: GameInstanceDto) => void
@@ -26,9 +27,18 @@ export function connectToGameInstance(
   handlers: GameInstanceRealtimeHandlers
 ): Client {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  const query = playerId ? `?playerId=${encodeURIComponent(playerId)}` : ''
+  // El token se lee en cada intento (no solo al construir el Client) para que una reconexión
+  // tras un access token renovado use el token vigente, no el que había al abrir la pestaña.
+  const buildUrl = () => {
+    const params = new URLSearchParams()
+    const token = getAccessToken()
+    if (token) params.set('token', token)
+    if (playerId) params.set('playerId', playerId)
+    const query = params.toString()
+    return `${wsProtocol}//${window.location.host}/ws${query ? `?${query}` : ''}`
+  }
   const client = new Client({
-    brokerURL: `${wsProtocol}//${window.location.host}/ws${query}`,
+    webSocketFactory: () => new WebSocket(buildUrl()),
     reconnectDelay: 3000,
     onConnect: () => {
       client.subscribe(`/topic/games/${instanceId}/public`, (message: IMessage) => {

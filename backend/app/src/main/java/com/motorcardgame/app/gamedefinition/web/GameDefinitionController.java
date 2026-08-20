@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,7 +31,8 @@ public class GameDefinitionController {
 
     @PostMapping
     public ResponseEntity<GameDefinitionResponse> create(@Valid @RequestBody CreateGameDefinitionRequest request) {
-        GameDefinition created = gameDefinitionService.create(request.ownerId(), request.name(), request.slug());
+        UUID ownerId = currentUserId();
+        GameDefinition created = gameDefinitionService.create(ownerId, request.name(), request.slug());
         GameDefinitionResponse body = GameDefinitionResponse.from(created);
         return ResponseEntity.created(URI.create("/api/game-definitions/" + body.id())).body(body);
     }
@@ -49,5 +51,9 @@ public class GameDefinitionController {
     public GameDefinitionResponse rename(
             @PathVariable UUID id, @Valid @RequestBody RenameGameDefinitionRequest request) {
         return GameDefinitionResponse.from(gameDefinitionService.rename(id, request.name()));
+    }
+
+    private static UUID currentUserId() {
+        return (UUID) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

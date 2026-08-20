@@ -1,17 +1,59 @@
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  notifyAuthExpired,
+  setAccessToken,
+  setRefreshToken,
+} from '@/auth/tokenStore'
+
 const BASE_URL = '/api'
+
+function rawFetch(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  const token = getAccessToken()
+  return fetch(`${BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    },
+  })
+}
+
+// Un 401 en cualquier llamada intenta renovar la sesión una vez con el refresh token antes de
+// rendirse — así una recarga de página o un access token caducado a media navegación no fuerzan
+// un logout si el refresh token todavía es válido.
+async function tryRefresh(): Promise<boolean> {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return false
+  const response = await fetch(`${BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  })
+  if (!response.ok) return false
+  const data: AuthResponseDto = await response.json()
+  setAccessToken(data.accessToken)
+  setRefreshToken(data.refreshToken)
+  return true
+}
 
 export async function apiCall<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${BASE_URL}${endpoint}`
-  const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  })
+  let response = await rawFetch(endpoint, options)
+
+  if (response.status === 401 && endpoint !== '/auth/refresh') {
+    const refreshed = await tryRefresh()
+    if (refreshed) {
+      response = await rawFetch(endpoint, options)
+    } else {
+      clearTokens()
+      notifyAuthExpired()
+    }
+  }
 
   if (!response.ok) {
     const error = await response.text()
@@ -26,6 +68,33 @@ export async function apiCall<T>(
 }
 
 export const api = {
+  auth: {
+    register: (data: RegisterRequest) =>
+      apiCall<AuthResponseDto>('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    login: (data: LoginRequest) =>
+      apiCall<AuthResponseDto>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    loginWithGoogle: (idToken: string) =>
+      apiCall<AuthResponseDto>('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({ idToken }),
+      }),
+    refresh: (refreshToken: string) =>
+      apiCall<AuthResponseDto>('/auth/refresh', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken }),
+      }),
+    logout: (refreshToken: string) =>
+      apiCall<void>('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken }),
+      }),
+  },
   gameDefinitions: {
     list: () => apiCall<GameDefinitionDto[]>('/game-definitions'),
     create: (data: CreateGameDefinitionRequest) =>
@@ -99,9 +168,31 @@ export interface GameDefinitionVersionDto {
 }
 
 export interface CreateGameDefinitionRequest {
-  ownerId: string
   name: string
   slug: string
+}
+
+export interface UserDto {
+  id: string
+  email: string
+  displayName: string
+}
+
+export interface AuthResponseDto {
+  accessToken: string
+  refreshToken: string
+  user: UserDto
+}
+
+export interface RegisterRequest {
+  email: string
+  password: string
+  displayName: string
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
 }
 
 export interface PublishVersionRequest {

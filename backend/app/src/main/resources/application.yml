@@ -18,3 +18,12 @@ spring:
 
 server:
   port: 8080
+
+jwt:
+  private-key-path: ${JWT_PRIVATE_KEY_PATH:classpath:keys/jwt-private.pem}
+  public-key-path: ${JWT_PUBLIC_KEY_PATH:classpath:keys/jwt-public.pem}
+  access-token-ttl-minutes: ${JWT_ACCESS_TOKEN_TTL_MINUTES:15}
+  refresh-token-ttl-days: ${JWT_REFRESH_TOKEN_TTL_DAYS:30}
+
+google:
+  client-id: ${GOOGLE_CLIENT_ID:}

@@ -9,9 +9,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 /**
  * Resuelve el {@link Principal} de la conexión WebSocket leyendo el query param {@code playerId}
- * de la URL de conexión — mismo nivel de confianza que el {@code playerId} de hoy en REST (no hay
- * Security de por medio en el proyecto). Sin {@code playerId}, la conexión queda como espectador
- * anónimo: sin Principal, solo llegan los mensajes de {@code /topic} público.
+ * de la URL de conexión. {@code playerId} identifica el asiento de la partida que se quiere
+ * escuchar (una cuenta puede controlar varios asientos, o ninguno) — es un concepto distinto del
+ * usuario autenticado, que se exige aparte en {@link JwtHandshakeInterceptor} antes de llegar
+ * aquí. Sin {@code playerId}, la conexión queda como espectador: sin Principal, solo llegan los
+ * mensajes de {@code /topic} público.
  */
 public class PlayerHandshakeHandler extends DefaultHandshakeHandler {
 
