@@ -17,8 +17,16 @@ public record FieldDescriptor(
         return new FieldDescriptor(name, FieldKind.ZONE_REF, true, null, null);
     }
 
+    public static FieldDescriptor optionalZoneRef(String name) {
+        return new FieldDescriptor(name, FieldKind.ZONE_REF, false, null, null);
+    }
+
     public static FieldDescriptor text(String name) {
         return new FieldDescriptor(name, FieldKind.TEXT, true, null, null);
+    }
+
+    public static FieldDescriptor optionalText(String name) {
+        return new FieldDescriptor(name, FieldKind.TEXT, false, null, null);
     }
 
     public static FieldDescriptor integer(String name) {

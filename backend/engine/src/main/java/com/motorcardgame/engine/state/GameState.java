@@ -23,6 +23,7 @@ public final class GameState {
     private int direction = 1;
     private final Map<String, Zone> sharedZones = new LinkedHashMap<>();
     private final Map<String, Map<PlayerId, Zone>> perPlayerZones = new LinkedHashMap<>();
+    private final Map<String, Object> variables = new LinkedHashMap<>();
 
     public GameState(List<Player> players) {
         this(players, 0, 1);
@@ -97,6 +98,23 @@ public final class GameState {
         currentPlayerIndex = Math.floorMod(currentPlayerIndex + direction, players.size());
     }
 
+    /**
+     * Cede el turno directamente a {@code id}, a diferencia de {@link #advanceTurn()}, que solo
+     * avanza secuencialmente — lo usa {@code SET_CURRENT_PLAYER} para dar el turno a un jugador
+     * resuelto dinámicamente (p.ej. quien ganó una baza), no necesariamente el siguiente en orden
+     * de asiento.
+     */
+    public void setCurrentPlayer(PlayerId id) {
+        Objects.requireNonNull(id, "id");
+        for (int i = 0; i < players.size(); i++) {
+            if (players.get(i).id().equals(id)) {
+                currentPlayerIndex = i;
+                return;
+            }
+        }
+        throw new NoSuchElementException("Unknown player: " + id);
+    }
+
     public void registerSharedZone(String name, Zone zone) {
         Objects.requireNonNull(name, "name");
         Objects.requireNonNull(zone, "zone");
@@ -153,5 +171,33 @@ public final class GameState {
      */
     public Map<String, Map<PlayerId, Zone>> perPlayerZones() {
         return Map.copyOf(perPlayerZones);
+    }
+
+    /**
+     * Recuerda {@code value} bajo {@code name}, de forma persistente e independiente de dónde esté
+     * ahora la carta (si alguna) que lo reveló — a diferencia de leer el atributo de la carta que
+     * está en el tope de una zona, este valor no desaparece cuando esa carta se mueve a otra zona
+     * (p.ej. el palo de triunfo, que sigue valiendo toda la mano aunque la carta que lo reveló
+     * acabe en la mano de un jugador). Dispara la acción {@code REMEMBER_CARD_ATTRIBUTE}.
+     */
+    public void setVariable(String name, Object value) {
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(value, "value");
+        variables.put(name, value);
+    }
+
+    /**
+     * Devuelve {@code null} si {@code name} nunca se ha fijado — un estado normal (p.ej. antes de
+     * que se ejecuten las reglas de {@code GAME_STARTED}), no un error.
+     */
+    public Object variable(String name) {
+        return variables.get(name);
+    }
+
+    /**
+     * Vista de solo lectura de las variables recordadas. Mismo motivo que {@link #sharedZones()}.
+     */
+    public Map<String, Object> variables() {
+        return Map.copyOf(variables);
     }
 }

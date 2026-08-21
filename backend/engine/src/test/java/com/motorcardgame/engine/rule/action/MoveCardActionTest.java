@@ -70,4 +70,40 @@ class MoveCardActionTest {
 
         assertThrows(NoSuchElementException.class, () -> action.execute(context));
     }
+
+    @Test
+    void stampsOwnerAttributeWhenConfigured() {
+        GameState state = new GameState(List.of(ALICE));
+        LinearZone hand = new LinearZone();
+        hand.pushTop(new Card(new CardId("c1"), Map.of()));
+        state.registerPlayerZone(ALICE.id(), "hand", hand);
+        state.registerSharedZone("mesa", new LinearZone());
+
+        MoveCardAction action = new MoveCardAction(
+                new ZoneRef("hand", Ownership.PER_PLAYER), new ZoneRef("mesa", Ownership.SHARED), "playedBy");
+        RuleContext context = new RuleContext(state, new Event("CARD_PLAYED", Map.of("cardId", "c1")))
+                .withTarget(ALICE);
+
+        action.execute(context);
+
+        assertEquals("alice", ((LinearZone) state.sharedZone("mesa")).peekTop().attribute("playedBy"));
+    }
+
+    @Test
+    void doesNotStampWhenNotConfigured() {
+        GameState state = new GameState(List.of(ALICE));
+        LinearZone hand = new LinearZone();
+        hand.pushTop(new Card(new CardId("c1"), Map.of()));
+        state.registerPlayerZone(ALICE.id(), "hand", hand);
+        state.registerSharedZone("mesa", new LinearZone());
+
+        MoveCardAction action = new MoveCardAction(
+                new ZoneRef("hand", Ownership.PER_PLAYER), new ZoneRef("mesa", Ownership.SHARED));
+        RuleContext context = new RuleContext(state, new Event("CARD_PLAYED", Map.of("cardId", "c1")))
+                .withTarget(ALICE);
+
+        action.execute(context);
+
+        assertEquals(Map.of(), ((LinearZone) state.sharedZone("mesa")).peekTop().attributes());
+    }
 }

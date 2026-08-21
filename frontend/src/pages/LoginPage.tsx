@@ -96,6 +96,13 @@ export default function LoginPage() {
           {t('auth.goToRegister')}
         </Link>
       </p>
+
+      <p className="mt-2 text-sm text-slate-600">
+        {t('room.haveACode')}{' '}
+        <Link to="/rooms/join" className="text-blue-600 hover:underline">
+          {t('room.goToJoin')}
+        </Link>
+      </p>
     </div>
   )
 }

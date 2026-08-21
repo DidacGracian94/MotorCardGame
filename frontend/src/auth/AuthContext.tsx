@@ -16,6 +16,13 @@ interface AuthContextValue {
   register: (email: string, password: string, displayName: string) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   loginWithGoogle: (idToken: string) => Promise<void>
+  /**
+   * El access token ya viene emitido por POST /api/rooms/{code}/join (ver RoomService en el
+   * backend) — aquí solo se adopta esa sesión de invitado, sin llamar a ningún /api/auth/**. Sin
+   * refresh token: si el access token caduca a media partida, la sesión de invitado no se puede
+   * renovar (recargar la página obliga a unirse de nuevo).
+   */
+  loginAsGuest: (accessToken: string, guestId: string, displayName: string) => void
   logout: () => Promise<void>
 }
 
@@ -79,6 +86,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAccessToken(response.accessToken)
         setRefreshToken(response.refreshToken)
         setUser(response.user)
+        setStatus('authenticated')
+      },
+      loginAsGuest: (accessToken, guestId, displayName) => {
+        setAccessToken(accessToken)
+        setUser({ id: guestId, email: '', displayName, role: 'USER' })
         setStatus('authenticated')
       },
       logout: async () => {

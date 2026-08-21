@@ -749,6 +749,84 @@ class RuleSetParserTest {
                 """;
     }
 
+    /**
+     * Regla de "sigo palo si tengo, si no vale cualquiera" -- el escenario real que motivó
+     * {@code ANY_CARD_ATTRIBUTE_MATCHES_ZONE}: sin la rama {@code NOT(...)} de la derecha, un
+     * jugador sin ninguna carta del palo pedido se queda sin ninguna jugada legal.
+     */
+    private static final String FOLLOW_SUIT_CONFIG = """
+            {
+              "rules": [
+                {
+                  "event": "PLAY_CARD",
+                  "condition": {
+                    "type": "OR",
+                    "conditions": [
+                      { "type": "ZONE_IS_EMPTY", "zone": { "name": "mesa", "ownership": "SHARED" } },
+                      {
+                        "type": "CARD_ATTRIBUTE_MATCHES_ZONE",
+                        "cardZone": { "name": "mano", "ownership": "PER_PLAYER" },
+                        "attribute": "suit",
+                        "zone": { "name": "mesa", "ownership": "SHARED" },
+                        "position": "BOTTOM"
+                      },
+                      {
+                        "type": "NOT",
+                        "condition": {
+                          "type": "ANY_CARD_ATTRIBUTE_MATCHES_ZONE",
+                          "zone": { "name": "mano", "ownership": "PER_PLAYER" },
+                          "attribute": "suit",
+                          "referenceZone": { "name": "mesa", "ownership": "SHARED" },
+                          "referencePosition": "BOTTOM"
+                        }
+                      }
+                    ]
+                  },
+                  "target": { "type": "CURRENT_PLAYER" },
+                  "action": {
+                    "type": "MOVE_CARD",
+                    "from": { "name": "mano", "ownership": "PER_PLAYER" },
+                    "to": { "name": "mesa", "ownership": "SHARED" }
+                  }
+                }
+              ]
+            }
+            """;
+
+    @Test
+    void followSuitRuleAllowsAnyCardWhenHandHasNoMatchingSuit() {
+        GameState state = new GameState(List.of(ALICE, BOB), 1); // Bob's turn to follow
+        LinearZone mesa = new LinearZone();
+        mesa.pushTop(new Card(new CardId("led"), Map.of("suit", "espadas")));
+        state.registerSharedZone("mesa", mesa);
+        LinearZone bobHand = new LinearZone();
+        bobHand.pushTop(new Card(new CardId("bob-oros"), Map.of("suit", "oros")));
+        state.registerPlayerZone(BOB.id(), "mano", bobHand);
+
+        RuleEngine engine = engineFor(FOLLOW_SUIT_CONFIG);
+        boolean matched = engine.handle(new Event("PLAY_CARD", Map.of("cardId", "bob-oros")), state);
+
+        assertTrue(matched, "with no card of the led suit, any card should be a legal play");
+        assertEquals(2, ((LinearZone) state.sharedZone("mesa")).size());
+    }
+
+    @Test
+    void followSuitRuleRejectsOffSuitCardWhenHandHasAMatchingSuit() {
+        GameState state = new GameState(List.of(ALICE, BOB), 1); // Bob's turn to follow
+        LinearZone mesa = new LinearZone();
+        mesa.pushTop(new Card(new CardId("led"), Map.of("suit", "espadas")));
+        state.registerSharedZone("mesa", mesa);
+        LinearZone bobHand = new LinearZone();
+        bobHand.pushTop(new Card(new CardId("bob-oros"), Map.of("suit", "oros")));
+        bobHand.pushTop(new Card(new CardId("bob-espadas"), Map.of("suit", "espadas")));
+        state.registerPlayerZone(BOB.id(), "mano", bobHand);
+
+        RuleEngine engine = engineFor(FOLLOW_SUIT_CONFIG);
+        boolean matched = engine.handle(new Event("PLAY_CARD", Map.of("cardId", "bob-oros")), state);
+
+        assertFalse(matched, "holding a card of the led suit means the off-suit card must be rejected");
+    }
+
     private static RuleEngine engineFor(String configJson) {
         List<Rule> rules = newParser().parse(configJson);
         return new RuleEngine(rules);

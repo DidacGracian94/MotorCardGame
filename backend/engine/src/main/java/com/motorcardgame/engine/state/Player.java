@@ -9,10 +9,21 @@ public final class Player {
 
     private final PlayerId id;
     private final String displayName;
+    private int score;
 
     public Player(PlayerId id, String displayName) {
+        this(id, displayName, 0);
+    }
+
+    /**
+     * Reconstruye un jugador con su puntuación ya acumulada — lo usa
+     * {@code GameStateSerializer} al deserializar un {@link GameState} persistido, donde la
+     * puntuación es parte de lo guardado, no algo que se recalcule.
+     */
+    public Player(PlayerId id, String displayName, int score) {
         this.id = Objects.requireNonNull(id, "id");
         this.displayName = Objects.requireNonNull(displayName, "displayName");
+        this.score = score;
     }
 
     public PlayerId id() {
@@ -21,6 +32,22 @@ public final class Player {
 
     public String displayName() {
         return displayName;
+    }
+
+    public int score() {
+        return score;
+    }
+
+    /**
+     * Suma puntos a este jugador — dispara la acción {@code ADD_POINTS} (p.ej. al llevarse las
+     * cartas de una baza). Un delta negativo no tiene sentido para "puntos ganados", así que se
+     * rechaza en vez de restar silenciosamente.
+     */
+    public void addScore(int delta) {
+        if (delta < 0) {
+            throw new IllegalArgumentException("delta must not be negative: " + delta);
+        }
+        score += delta;
     }
 
     @Override

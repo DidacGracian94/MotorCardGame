@@ -21,10 +21,22 @@ public final class MoveCardAction implements Action {
 
     private final ZoneRef from;
     private final ZoneRef to;
+    private final String stampOwnerAs;
 
     public MoveCardAction(ZoneRef from, ZoneRef to) {
+        this(from, to, null);
+    }
+
+    /**
+     * @param stampOwnerAs si no es {@code null}, el nombre del atributo bajo el que se graba el id
+     *                     del target (típicamente quien jugó la carta) antes de moverla — la única
+     *                     forma de que una carta conserve quién la jugó una vez sale de una zona
+     *                     {@code PER_PLAYER} a una compartida.
+     */
+    public MoveCardAction(ZoneRef from, ZoneRef to, String stampOwnerAs) {
         this.from = Objects.requireNonNull(from, "from");
         this.to = Objects.requireNonNull(to, "to");
+        this.stampOwnerAs = stampOwnerAs;
     }
 
     @Override
@@ -38,6 +50,9 @@ public final class MoveCardAction implements Action {
         LinearZone fromZone = (LinearZone) from.resolve(context.gameState(), target);
         LinearZone toZone = (LinearZone) to.resolve(context.gameState(), target);
         Card card = fromZone.removeById(cardId);
+        if (stampOwnerAs != null) {
+            card = card.withAttribute(stampOwnerAs, target.id().value());
+        }
         toZone.pushTop(card);
     }
 }

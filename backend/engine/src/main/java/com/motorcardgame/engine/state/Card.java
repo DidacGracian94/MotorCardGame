@@ -1,5 +1,6 @@
 package com.motorcardgame.engine.state;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
@@ -27,6 +28,17 @@ public final class Card {
 
     public Map<String, Object> attributes() {
         return attributes;
+    }
+
+    /**
+     * Copia esta carta con {@code key} añadido/sobrescrito en sus atributos, mismo {@code id} —
+     * lo usa {@code MOVE_CARD} para "marcar" en tiempo de ejecución qué jugador jugó la carta antes
+     * de entregarla a una zona compartida, donde esa trazabilidad se perdería de otro modo.
+     */
+    public Card withAttribute(String key, Object value) {
+        Map<String, Object> merged = new HashMap<>(attributes);
+        merged.put(key, value);
+        return new Card(id, merged);
     }
 
     @Override

@@ -35,6 +35,7 @@ public final class GameStateSerializer {
             ObjectNode playerNode = playersNode.addObject();
             playerNode.put("id", player.id().value());
             playerNode.put("displayName", player.displayName());
+            playerNode.put("score", player.score());
         }
         root.put("currentPlayerIndex", state.currentPlayerIndex());
         root.put("direction", state.direction());
@@ -51,6 +52,9 @@ public final class GameStateSerializer {
                 zonesByOwner.set(ownerEntry.getKey().value(), cardsArray(ownerEntry.getValue()));
             }
         }
+
+        ObjectNode variablesNode = root.putObject("variables");
+        state.variables().forEach((key, value) -> JsonNodes.putScalar(variablesNode, key, value));
 
         try {
             return objectMapper.writeValueAsString(root);
@@ -71,7 +75,8 @@ public final class GameStateSerializer {
         for (JsonNode playerNode : JsonNodes.requiredArray(root, "players")) {
             players.add(new Player(
                     new PlayerId(JsonNodes.requiredText(playerNode, "id")),
-                    JsonNodes.requiredText(playerNode, "displayName")));
+                    JsonNodes.requiredText(playerNode, "displayName"),
+                    JsonNodes.optionalInt(playerNode, "score", 0)));
         }
         int direction = JsonNodes.optionalInt(root, "direction", 1);
         GameState state = new GameState(players, JsonNodes.requiredInt(root, "currentPlayerIndex"), direction);
@@ -85,6 +90,13 @@ public final class GameStateSerializer {
         for (Map.Entry<String, JsonNode> zoneEntry : perPlayerZonesNode.properties()) {
             for (Map.Entry<String, JsonNode> ownerEntry : zoneEntry.getValue().properties()) {
                 state.registerPlayerZone(new PlayerId(ownerEntry.getKey()), zoneEntry.getKey(), zoneFromArray(ownerEntry.getValue()));
+            }
+        }
+
+        JsonNode variablesNode = root.path("variables");
+        if (variablesNode.isObject()) {
+            for (Map.Entry<String, JsonNode> entry : variablesNode.properties()) {
+                state.setVariable(entry.getKey(), JsonNodes.scalarValue(entry.getValue()));
             }
         }
 

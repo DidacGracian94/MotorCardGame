@@ -1,5 +1,9 @@
 # Maven
 target/
+# Un-ignore any "target" directory that has "src" as an ancestor -- the engine module has a real
+# source package named "target" (com.motorcardgame.engine.rule.target), which the bare pattern
+# above would otherwise also match and silently hide from git.
+!**/src/**/target/
 !.mvn/wrapper/maven-wrapper.jar
 
 # Java
@@ -25,6 +29,7 @@ Thumbs.db
 # Env / secrets
 .env
 .env.local
+.env.properties
 
 # Node / frontend
 node_modules/

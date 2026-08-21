@@ -134,6 +134,9 @@ export const api = {
   capabilities: {
     list: () => apiCall<CapabilitiesDto>('/capabilities'),
   },
+  aiGuide: {
+    get: () => apiCall<AiGuideDto>('/ai-guide'),
+  },
   admin: {
     users: {
       list: () => apiCall<UserDto[]>('/admin/users'),
@@ -157,6 +160,17 @@ export const api = {
         `/instances/${instanceId}/actions${asPlayerQuery(asPlayer)}`,
         { method: 'POST', body: JSON.stringify(data) }
       ),
+  },
+  rooms: {
+    create: (data: CreateRoomRequest) =>
+      apiCall<RoomDto>('/rooms', { method: 'POST', body: JSON.stringify(data) }),
+    get: (code: string) => apiCall<RoomDto>(`/rooms/${code}`),
+    join: (code: string, data: JoinRoomRequest) =>
+      apiCall<JoinRoomResponseDto>(`/rooms/${code}/join`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    start: (code: string) => apiCall<RoomDto>(`/rooms/${code}/start`, { method: 'POST' }),
   },
 }
 
@@ -240,6 +254,7 @@ export interface CapabilityFieldDto {
 
 export interface CapabilityDto {
   name: string
+  description: string
   fields: CapabilityFieldDto[]
 }
 
@@ -247,6 +262,10 @@ export interface CapabilitiesDto {
   actions: CapabilityDto[]
   conditions: CapabilityDto[]
   targets: CapabilityDto[]
+}
+
+export interface AiGuideDto {
+  markdown: string
 }
 
 export interface CardDto {
@@ -277,6 +296,7 @@ export interface GameInstanceDto {
   gameDefinitionId: string
   gameDefinitionVersionId: string
   state: GameInstanceStateDto
+  playerActions: string[]
   createdAt: string
   endedAt: string | null
 }
@@ -290,4 +310,38 @@ export interface PlayerActionRequest {
   playerId: string
   eventType: string
   payload?: Record<string, unknown>
+}
+
+export type RoomStatus = 'OPEN' | 'STARTED'
+
+export interface RoomPlayerDto {
+  id: string
+  displayName: string
+}
+
+export interface RoomDto {
+  code: string
+  gameDefinitionId: string
+  versionNumber: number
+  hostUserId: string
+  status: RoomStatus
+  players: RoomPlayerDto[]
+  instanceId: string | null
+  createdAt: string
+}
+
+export interface CreateRoomRequest {
+  gameDefinitionId: string
+  versionNumber: number
+}
+
+export interface JoinRoomRequest {
+  displayName: string
+}
+
+export interface JoinRoomResponseDto {
+  playerId: string
+  displayName: string
+  accessToken: string
+  room: RoomDto
 }

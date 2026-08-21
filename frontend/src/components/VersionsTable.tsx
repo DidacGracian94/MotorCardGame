@@ -9,9 +9,16 @@ interface Props {
   catalogs: CapabilitiesDto
   onEditAsNewVersion: (versionNumber: number) => void
   onCreateInstance: (versionNumber: number) => void
+  onCreateRoom: (versionNumber: number) => void
 }
 
-export default function VersionsTable({ versions, catalogs, onEditAsNewVersion, onCreateInstance }: Props) {
+export default function VersionsTable({
+  versions,
+  catalogs,
+  onEditAsNewVersion,
+  onCreateInstance,
+  onCreateRoom,
+}: Props) {
   const { t } = useTranslation()
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -65,6 +72,12 @@ export default function VersionsTable({ versions, catalogs, onEditAsNewVersion, 
                       className="text-blue-600 hover:text-blue-700 font-medium text-sm"
                     >
                       {t('instance.createButton')}
+                    </button>
+                    <button
+                      onClick={() => onCreateRoom(version.versionNumber)}
+                      className="text-green-600 hover:text-green-700 font-medium text-sm"
+                    >
+                      {t('room.createButton')}
                     </button>
                     <button
                       onClick={() => onEditAsNewVersion(version.versionNumber)}

@@ -12,6 +12,7 @@ import com.motorcardgame.app.gamedefinition.instance.web.InstanceController;
 import com.motorcardgame.app.gamedefinition.version.application.GameDefinitionVersionNotFoundException;
 import com.motorcardgame.app.gamedefinition.version.application.VersionPublishConflictException;
 import com.motorcardgame.app.gamedefinition.version.web.GameDefinitionVersionController;
+import com.motorcardgame.app.room.web.RoomController;
 import com.motorcardgame.engine.exception.InvalidGameDefinitionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
         GameDefinitionController.class,
         GameDefinitionVersionController.class,
         GameInstanceController.class,
-        InstanceController.class
+        InstanceController.class,
+        RoomController.class
 })
 class GameDefinitionExceptionHandler {
 

@@ -12,6 +12,7 @@ import CardTemplatesEditor from '@/components/editor/CardTemplatesEditor'
 import RulesEditor from '@/components/editor/RulesEditor'
 import JsonConfigTab from '@/components/editor/JsonConfigTab'
 import CollapsibleSection from '@/components/editor/CollapsibleSection'
+import AiGenerateModal from '@/components/AiGenerateModal'
 
 type Tab = 'visual' | 'json'
 
@@ -163,6 +164,7 @@ export default function GameDefinitionEditorPage() {
   const [jsonText, setJsonText] = useState('')
   const [jsonError, setJsonError] = useState<string>()
   const [validationError, setValidationError] = useState<string>()
+  const [aiModalOpen, setAiModalOpen] = useState(false)
   // Secciones plegadas por clave — vacío al inicio (todas abiertas); cada juego suele necesitar
   // ver de golpe sus zonas/atributos/reglas al recuperar una versión existente para editarla.
   const [collapsedSections, setCollapsedSections] = useState<Set<SectionKey>>(new Set())
@@ -230,6 +232,12 @@ export default function GameDefinitionEditorPage() {
   if (catalogsLoading || !catalogs) {
     return (
       <div className="max-w-7xl mx-auto py-8 px-4">
+        <button
+          onClick={onBack}
+          className="mb-6 px-4 py-2 text-blue-600 hover:text-blue-700 font-medium"
+        >
+          {t('editor.backToVersions')}
+        </button>
         <p className="text-center py-12 text-slate-600">{t('editor.loadingCapabilities')}</p>
       </div>
     )
@@ -363,8 +371,19 @@ export default function GameDefinitionEditorPage() {
           </CollapsibleSection>
         </div>
       ) : (
-        <JsonConfigTab value={jsonText} onChange={setJsonText} onApply={handleApplyJson} error={jsonError} />
+        <div className="space-y-4">
+          <button
+            type="button"
+            onClick={() => setAiModalOpen(true)}
+            className="px-4 py-2 border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+          >
+            {t('editor.generateWithAiButton')}
+          </button>
+          <JsonConfigTab value={jsonText} onChange={setJsonText} onApply={handleApplyJson} error={jsonError} />
+        </div>
       )}
+
+      <AiGenerateModal open={aiModalOpen} onOpenChange={setAiModalOpen} />
     </div>
   )
 }

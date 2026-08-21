@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -93,5 +94,61 @@ class GameStateSerializerTest {
     @Test
     void malformedJsonIsInvalid() {
         assertThrows(InvalidGameDefinitionException.class, () -> serializer.fromJson("{not json"));
+    }
+
+    @Test
+    void roundTripsPlayerScore() {
+        GameState original = new GameState(List.of(ALICE, BOB));
+        original.players().get(0).addScore(11);
+        original.players().get(1).addScore(4);
+
+        GameState restored = serializer.fromJson(serializer.toJson(original));
+
+        assertEquals(11, restored.players().get(0).score());
+        assertEquals(4, restored.players().get(1).score());
+    }
+
+    @Test
+    void defaultsToZeroScoreWhenFieldIsAbsent() {
+        String legacyStateWithoutScore = """
+                {
+                  "players": [{ "id": "alice", "displayName": "Alice" }],
+                  "currentPlayerIndex": 0,
+                  "sharedZones": {},
+                  "perPlayerZones": {}
+                }
+                """;
+
+        GameState restored = serializer.fromJson(legacyStateWithoutScore);
+
+        assertEquals(0, restored.currentPlayer().score());
+    }
+
+    @Test
+    void roundTripsVariables() {
+        GameState original = new GameState(List.of(ALICE));
+        original.setVariable("trumpSuit", "oros");
+        original.setVariable("dealtCount", 6);
+
+        GameState restored = serializer.fromJson(serializer.toJson(original));
+
+        assertEquals("oros", restored.variable("trumpSuit"));
+        assertEquals(6, restored.variable("dealtCount"));
+    }
+
+    @Test
+    void defaultsToNoVariablesWhenFieldIsAbsent() {
+        String legacyStateWithoutVariables = """
+                {
+                  "players": [{ "id": "alice", "displayName": "Alice" }],
+                  "currentPlayerIndex": 0,
+                  "sharedZones": {},
+                  "perPlayerZones": {}
+                }
+                """;
+
+        GameState restored = serializer.fromJson(legacyStateWithoutVariables);
+
+        assertNull(restored.variable("trumpSuit"));
     }
 }

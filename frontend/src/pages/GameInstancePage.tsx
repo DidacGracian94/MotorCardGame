@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useGameDefinitionVersions } from '@/hooks/useGameDefinitions'
 import { useApplyPlayerAction, useGameInstance } from '@/hooks/useGameInstance'
 import { useTranslation } from '@/i18n/LanguageContext'
-import { parseConfig } from '@/lib/configTransforms'
 import { connectToGameInstance } from '@/realtime/stompClient'
 import { ConnectionStatus, useGameInstanceStore } from '@/store/gameInstanceStore'
 import ActionPanel from '@/components/instance/ActionPanel'
@@ -50,13 +48,17 @@ export default function GameInstancePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instanceId, viewerPlayerId])
 
-  const gameDefinitionId = snapshot?.gameDefinitionId
-  const { data: versions } = useGameDefinitionVersions(gameDefinitionId ?? '')
-  const version = versions?.find((v) => v.id === snapshot?.gameDefinitionVersionId)
-  const playerActions = version ? parseConfig(version.config).playerActions : []
+  const playerActions = snapshot?.playerActions ?? []
 
   if (!snapshot) {
-    return <div className="max-w-5xl mx-auto py-8 px-4 text-slate-600">{t('play.loading')}</div>
+    return (
+      <div className="max-w-5xl mx-auto py-8 px-4 space-y-6">
+        <button onClick={onBack} className="px-4 py-2 text-blue-600 hover:text-blue-700 font-medium">
+          {t('play.back')}
+        </button>
+        <p className="text-slate-600">{t('play.loading')}</p>
+      </div>
+    )
   }
 
   const state = snapshot.state

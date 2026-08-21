@@ -24,4 +24,19 @@ public final class ZoneRefs {
             throw new InvalidGameDefinitionException("unknown zone ownership \"" + ownershipText + "\": " + node, e);
         }
     }
+
+    /**
+     * Igual que {@link #fromJson(JsonNode)} pero para un campo opcional: {@code null} si
+     * {@code field} está ausente en {@code parentNode}, en vez de exigirlo siempre.
+     */
+    public static ZoneRef optionalFromJson(JsonNode parentNode, String field) {
+        JsonNode value = parentNode.path(field);
+        if (value.isMissingNode() || value.isNull()) {
+            return null;
+        }
+        if (!value.isObject()) {
+            throw new InvalidGameDefinitionException("field \"" + field + "\" must be an object: " + parentNode);
+        }
+        return fromJson(value);
+    }
 }

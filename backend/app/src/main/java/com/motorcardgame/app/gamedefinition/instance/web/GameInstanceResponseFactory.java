@@ -7,6 +7,7 @@ import com.motorcardgame.app.gamedefinition.instance.web.dto.GameInstanceRespons
 import com.motorcardgame.app.gamedefinition.version.application.GameDefinitionVersionService;
 import com.motorcardgame.app.gamedefinition.version.domain.GameDefinitionVersion;
 import com.motorcardgame.engine.config.GameSetupParser;
+import com.motorcardgame.engine.config.RuleSetParser;
 import com.motorcardgame.engine.state.ZoneVisibility;
 import java.util.Map;
 import org.springframework.stereotype.Component;
@@ -24,14 +25,17 @@ public class GameInstanceResponseFactory {
 
     private final GameDefinitionVersionService gameDefinitionVersionService;
     private final GameSetupParser gameSetupParser;
+    private final RuleSetParser ruleSetParser;
     private final ObjectMapper objectMapper;
 
     public GameInstanceResponseFactory(
             GameDefinitionVersionService gameDefinitionVersionService,
             GameSetupParser gameSetupParser,
+            RuleSetParser ruleSetParser,
             ObjectMapper objectMapper) {
         this.gameDefinitionVersionService = gameDefinitionVersionService;
         this.gameSetupParser = gameSetupParser;
+        this.ruleSetParser = ruleSetParser;
         this.objectMapper = objectMapper;
     }
 
@@ -39,6 +43,7 @@ public class GameInstanceResponseFactory {
             throws JsonProcessingException {
         GameDefinitionVersion version = gameDefinitionVersionService.getById(instance.gameDefinitionVersionId());
         Map<String, ZoneVisibility> zoneVisibility = gameSetupParser.parseZoneVisibility(version.config());
-        return GameInstanceResponse.from(instance, objectMapper, viewerPlayerId, zoneVisibility);
+        return GameInstanceResponse.from(
+                instance, objectMapper, viewerPlayerId, zoneVisibility, ruleSetParser.parsePlayerActions(version.config()));
     }
 }

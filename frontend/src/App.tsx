@@ -4,6 +4,8 @@ import VersionsPage from '@/pages/VersionsPage'
 import GameDefinitionEditorPage from '@/pages/GameDefinitionEditorPage'
 import CreateInstancePage from '@/pages/CreateInstancePage'
 import GameInstancePage from '@/pages/GameInstancePage'
+import CreateRoomPage from '@/pages/CreateRoomPage'
+import JoinRoomPage from '@/pages/JoinRoomPage'
 import AdminUsersPage from '@/pages/AdminUsersPage'
 import LoginPage from '@/pages/LoginPage'
 import RegisterPage from '@/pages/RegisterPage'
@@ -17,6 +19,7 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/rooms/join" element={<JoinRoomPage />} />
         <Route
           path="/"
           element={
@@ -46,6 +49,14 @@ function App() {
           element={
             <ProtectedRoute>
               <CreateInstancePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/games/:gameDefinitionId/rooms/new"
+          element={
+            <ProtectedRoute>
+              <CreateRoomPage />
             </ProtectedRoute>
           }
         />

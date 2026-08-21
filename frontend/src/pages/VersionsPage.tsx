@@ -56,6 +56,9 @@ export default function VersionsPage() {
           onCreateInstance={(versionNumber) =>
             navigate(`/games/${gameDefinitionId}/instances/new?version=${versionNumber}`)
           }
+          onCreateRoom={(versionNumber) =>
+            navigate(`/games/${gameDefinitionId}/rooms/new?version=${versionNumber}`)
+          }
         />
       ) : null}
     </div>

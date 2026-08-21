@@ -8,6 +8,7 @@ import java.util.NoSuchElementException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -185,6 +186,56 @@ class GameStateTest {
         GameState state = new GameState(List.of(ALICE, BOB));
 
         assertFalse(state.isCurrentPlayer(new PlayerId("carol")));
+    }
+
+    @Test
+    void setCurrentPlayerJumpsDirectlyToGivenPlayer() {
+        GameState state = new GameState(List.of(ALICE, BOB, CAROL));
+
+        state.setCurrentPlayer(CAROL.id());
+
+        assertEquals(CAROL, state.currentPlayer());
+        assertEquals(2, state.currentPlayerIndex());
+    }
+
+    @Test
+    void setCurrentPlayerThrowsForUnknownPlayer() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+
+        assertThrows(NoSuchElementException.class, () -> state.setCurrentPlayer(new PlayerId("carol")));
+    }
+
+    @Test
+    void variableIsNullBeforeItIsEverSet() {
+        GameState state = new GameState(List.of(ALICE));
+
+        assertNull(state.variable("trumpSuit"));
+    }
+
+    @Test
+    void variableRoundTripsAfterBeingSet() {
+        GameState state = new GameState(List.of(ALICE));
+
+        state.setVariable("trumpSuit", "oros");
+
+        assertEquals("oros", state.variable("trumpSuit"));
+    }
+
+    @Test
+    void setVariableRejectsNullValue() {
+        GameState state = new GameState(List.of(ALICE));
+
+        assertThrows(NullPointerException.class, () -> state.setVariable("trumpSuit", null));
+    }
+
+    @Test
+    void variablesViewDoesNotExposeMutationOfUnderlyingState() {
+        GameState state = new GameState(List.of(ALICE));
+        state.setVariable("trumpSuit", "oros");
+
+        assertTrue(state.variables().containsKey("trumpSuit"));
+        assertThrows(UnsupportedOperationException.class,
+                () -> state.variables().put("ledSuit", "copas"));
     }
 
     @Test

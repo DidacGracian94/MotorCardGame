@@ -27,23 +27,30 @@ class StandardCapabilitiesTest {
         assertTrue(actionRegistry.contains("SEQUENCE"));
         assertTrue(actionRegistry.contains("REPEAT"));
         assertTrue(actionRegistry.contains("REVERSE_DIRECTION"));
+        assertTrue(actionRegistry.contains("ADD_POINTS"));
+        assertTrue(actionRegistry.contains("MOVE_ALL_CARDS"));
+        assertTrue(actionRegistry.contains("SET_CURRENT_PLAYER"));
+        assertTrue(actionRegistry.contains("REMEMBER_CARD_ATTRIBUTE"));
 
         assertTrue(conditionRegistry.contains("ZONE_IS_EMPTY"));
         assertTrue(conditionRegistry.contains("CARD_ATTRIBUTE_EQUALS"));
         assertTrue(conditionRegistry.contains("CARD_ATTRIBUTE_MATCHES_ZONE"));
+        assertTrue(conditionRegistry.contains("ANY_CARD_ATTRIBUTE_MATCHES_ZONE"));
         assertTrue(conditionRegistry.contains("EVENT_CARD_ATTRIBUTE_EQUALS"));
         assertTrue(conditionRegistry.contains("EVENT_CARD_IN_ZONE"));
         assertTrue(conditionRegistry.contains("AND"));
         assertTrue(conditionRegistry.contains("OR"));
         assertTrue(conditionRegistry.contains("NOT"));
+        assertTrue(conditionRegistry.contains("ZONE_CARD_COUNT_EQUALS"));
 
         assertTrue(targetRegistry.contains("CURRENT_PLAYER"));
         assertTrue(targetRegistry.contains("ALL_PLAYERS"));
         assertTrue(targetRegistry.contains("NEXT_PLAYER"));
+        assertTrue(targetRegistry.contains("WINNING_CARD_OWNER"));
 
-        assertEquals(6, actionRegistry.describeAll().size());
-        assertEquals(8, conditionRegistry.describeAll().size());
-        assertEquals(3, targetRegistry.describeAll().size());
+        assertEquals(10, actionRegistry.describeAll().size());
+        assertEquals(10, conditionRegistry.describeAll().size());
+        assertEquals(4, targetRegistry.describeAll().size());
     }
 
     @Test

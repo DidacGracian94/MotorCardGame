@@ -17,7 +17,9 @@
     { "key": "aliceCardId", "value": "" },
     { "key": "aliceSecondCardId", "value": "" },
     { "key": "accessToken", "value": "" },
-    { "key": "refreshToken", "value": "" }
+    { "key": "refreshToken", "value": "" },
+    { "key": "roomCode", "value": "" },
+    { "key": "roomPlayerId", "value": "" }
   ],
   "item": [
     {
@@ -763,6 +765,161 @@
       ]
     },
     {
+      "name": "Room",
+      "description": "Sala de espera estilo Kahoot (ver RoomController). Create y Start los hace el host logueado; Get y Join quedan permitAll en SecurityConfig porque un jugador que se une todavía no tiene ningún token — Join, de hecho, es lo que le emite uno (de invitado, sin refresh token).",
+      "item": [
+        {
+          "name": "Create room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('roomCode', body.code);",
+                  "pm.test('status is OPEN', () => pm.expect(body.status).to.eql('OPEN'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameDefinitionId\": \"{{gameDefinitionId}}\",\n  \"versionNumber\": {{versionNumber}}\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/rooms", "host": ["{{baseUrl}}"], "path": ["api", "rooms"] },
+            "description": "El host es quien ejecuta esto con su propio {{accessToken}}."
+          }
+        },
+        {
+          "name": "Get room",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{roomCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "{{roomCode}}"]
+            }
+          }
+        },
+        {
+          "name": "Join room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('roomPlayerId', body.playerId);",
+                  "pm.test('got a guest access token', () => pm.expect(body.accessToken).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"displayName\": \"Carol\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{roomCode}}/join",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "{{roomCode}}", "join"]
+            },
+            "description": "Sin Authorization: nadie tiene sesión todavía en este punto — es como se une un jugador estilo Kahoot, solo con nombre."
+          }
+        },
+        {
+          "name": "Start room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('status is STARTED', () => pm.expect(body.status).to.eql('STARTED'));",
+                  "pm.test('has instanceId', () => pm.expect(body.instanceId).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{roomCode}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "{{roomCode}}", "start"]
+            },
+            "description": "Con {{accessToken}} del host — ejecutar después de Join room, que ya deja al menos un jugador en la sala."
+          }
+        },
+        {
+          "name": "[Error] Join room - 404 código no existe",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 404', () => pm.response.to.have.status(404));"] }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"displayName\": \"Nadie\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/ZZZZZZ/join",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "ZZZZZZ", "join"]
+            }
+          }
+        },
+        {
+          "name": "[Error] Start room - 403 no eres el host",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 403', () => pm.response.to.have.status(403));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{roomCode}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "{{roomCode}}", "start"]
+            },
+            "description": "Ejecutar con el {{accessToken}} de un usuario distinto al que creó la sala (login con otra cuenta antes)."
+          }
+        },
+        {
+          "name": "[Error] Start room - 400 sin jugadores",
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.test('status is 400', () => pm.response.to.have.status(400));"] }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/rooms/{{roomCode}}/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "rooms", "{{roomCode}}", "start"]
+            },
+            "description": "Ejecutar sobre una sala recién creada con 'Create room', sin haber ejecutado 'Join room' todavía."
+          }
+        }
+      ]
+    },
+    {
       "name": "Capabilities",
       "item": [
         {
@@ -787,6 +944,34 @@
           "request": {
             "method": "GET",
             "url": { "raw": "{{baseUrl}}/api/capabilities", "host": ["{{baseUrl}}"], "path": ["api", "capabilities"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AiGuide",
+      "item": [
+        {
+          "name": "Get AI guide",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('has markdown with capability names', () => {",
+                  "  pm.expect(body.markdown).to.be.a('string');",
+                  "  pm.expect(body.markdown).to.include('DRAW_CARDS');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/api/ai-guide", "host": ["{{baseUrl}}"], "path": ["api", "ai-guide"] }
           }
         }
       ]
