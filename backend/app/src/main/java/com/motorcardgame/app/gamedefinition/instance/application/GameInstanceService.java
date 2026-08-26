@@ -15,6 +15,7 @@ import com.motorcardgame.engine.rule.RuleEngine;
 import com.motorcardgame.engine.state.GameState;
 import com.motorcardgame.engine.state.Player;
 import com.motorcardgame.engine.state.PlayerId;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -92,6 +93,9 @@ public class GameInstanceService {
     @Transactional
     public GameInstance applyAction(UUID instanceId, PlayerId actingPlayerId, String eventType, Map<String, Object> payload) {
         GameInstance instance = getById(instanceId);
+        if (instance.endedAt() != null) {
+            throw new GameAlreadyEndedException(instanceId);
+        }
         GameDefinitionVersion version = gameDefinitionVersionService.getById(instance.gameDefinitionVersionId());
         if (!ruleSetParser.parsePlayerActions(version.config()).contains(eventType)) {
             throw new UnknownPlayerActionException(instanceId, eventType);
@@ -108,7 +112,11 @@ public class GameInstanceService {
             throw new PlayerActionRejectedException(instanceId, actingPlayerId, eventType);
         }
 
-        GameInstance saved = repository.save(instance.withState(gameStateSerializer.toJson(state)));
+        GameInstance updated = instance.withState(gameStateSerializer.toJson(state));
+        if (state.isEnded()) {
+            updated = updated.withEndedAt(Instant.now());
+        }
+        GameInstance saved = repository.save(updated);
         eventPublisher.publishEvent(new GameInstanceUpdatedEvent(saved.id()));
         return saved;
     }

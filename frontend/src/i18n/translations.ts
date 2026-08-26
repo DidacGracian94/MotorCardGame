@@ -299,6 +299,10 @@ export const translations: Record<Language, Record<string, string>> = {
     'play.emptyZone': '(empty)',
     'play.cardCount': '{{count}} cards',
     'play.loading': 'Loading game…',
+    'play.gameOverTitle': 'Game over',
+    'play.winnerAnnouncement': 'Winner: {{players}}',
+    'play.winnersAnnouncement': 'Winners: {{players}}',
+    'play.noWinnerAnnouncement': 'The game ended with no winner.',
   },
   es: {
     'common.name': 'Nombre',
@@ -598,5 +602,9 @@ export const translations: Record<Language, Record<string, string>> = {
     'play.emptyZone': '(vacía)',
     'play.cardCount': '{{count}} cartas',
     'play.loading': 'Cargando partida…',
+    'play.gameOverTitle': 'Partida terminada',
+    'play.winnerAnnouncement': 'Ganador: {{players}}',
+    'play.winnersAnnouncement': 'Ganadores: {{players}}',
+    'play.noWinnerAnnouncement': 'La partida ha terminado sin ganador.',
   },
 }

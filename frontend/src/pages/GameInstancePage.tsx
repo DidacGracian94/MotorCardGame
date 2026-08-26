@@ -64,6 +64,7 @@ export default function GameInstancePage() {
   const state = snapshot.state
   const currentPlayer = state.players[state.currentPlayerIndex]
   const isMyTurn = viewerPlayerId != null && currentPlayer?.id === viewerPlayerId
+  const winners = state.players.filter((player) => state.winners.includes(player.id))
 
   const handleTriggerAction = (eventType: string) => {
     if (!viewerPlayerId) return
@@ -88,7 +89,9 @@ export default function GameInstancePage() {
 
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold text-slate-900">
-          {t('play.turnIndicator', { player: currentPlayer?.displayName ?? '' })}
+          {state.ended
+            ? t('play.gameOverTitle')
+            : t('play.turnIndicator', { player: currentPlayer?.displayName ?? '' })}
         </h1>
         <p className="text-slate-600 text-sm">
           {viewerPlayerId
@@ -96,6 +99,16 @@ export default function GameInstancePage() {
             : t('play.viewingAsSpectator')}
         </p>
       </div>
+
+      {state.ended && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-900 font-medium">
+          {winners.length === 0
+            ? t('play.noWinnerAnnouncement')
+            : t(winners.length > 1 ? 'play.winnersAnnouncement' : 'play.winnerAnnouncement', {
+                players: winners.map((player) => player.displayName).join(', '),
+              })}
+        </div>
+      )}
 
       <section>
         <h2 className="text-lg font-semibold text-slate-800 mb-2">{t('play.sharedZonesTitle')}</h2>
@@ -142,7 +155,7 @@ export default function GameInstancePage() {
 
       <ActionPanel
         playerActions={playerActions}
-        disabled={!viewerPlayerId || !isMyTurn || applyAction.isPending}
+        disabled={!viewerPlayerId || !isMyTurn || applyAction.isPending || state.ended}
         onTriggerAction={handleTriggerAction}
       />
     </div>

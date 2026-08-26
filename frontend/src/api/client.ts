@@ -287,6 +287,8 @@ export interface GameInstanceStateDto {
   players: GameInstancePlayerDto[]
   currentPlayerIndex: number
   direction: number
+  ended: boolean
+  winners: string[]
   sharedZones: Record<string, CardDto[] | HiddenZoneDto>
   perPlayerZones: Record<string, Record<string, CardDto[] | HiddenZoneDto>>
 }

@@ -39,6 +39,11 @@ public final class GameStateSerializer {
         }
         root.put("currentPlayerIndex", state.currentPlayerIndex());
         root.put("direction", state.direction());
+        root.put("ended", state.isEnded());
+        ArrayNode winnersNode = root.putArray("winners");
+        for (PlayerId winner : state.winners()) {
+            winnersNode.add(winner.value());
+        }
 
         ObjectNode sharedZonesNode = root.putObject("sharedZones");
         for (Map.Entry<String, Zone> entry : state.sharedZones().entrySet()) {
@@ -79,7 +84,13 @@ public final class GameStateSerializer {
                     JsonNodes.optionalInt(playerNode, "score", 0)));
         }
         int direction = JsonNodes.optionalInt(root, "direction", 1);
-        GameState state = new GameState(players, JsonNodes.requiredInt(root, "currentPlayerIndex"), direction);
+        boolean ended = JsonNodes.optionalBoolean(root, "ended", false);
+        List<PlayerId> winners = new ArrayList<>();
+        for (JsonNode winnerNode : root.path("winners")) {
+            winners.add(new PlayerId(winnerNode.asText()));
+        }
+        GameState state = new GameState(
+                players, JsonNodes.requiredInt(root, "currentPlayerIndex"), direction, ended, winners);
 
         JsonNode sharedZonesNode = JsonNodes.requiredObject(root, "sharedZones");
         for (Map.Entry<String, JsonNode> entry : sharedZonesNode.properties()) {

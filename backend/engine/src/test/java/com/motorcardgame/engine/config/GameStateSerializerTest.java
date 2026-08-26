@@ -151,4 +151,32 @@ class GameStateSerializerTest {
 
         assertNull(restored.variable("trumpSuit"));
     }
+
+    @Test
+    void roundTripsEndedGameAndWinners() {
+        GameState original = new GameState(List.of(ALICE, BOB));
+        original.declareWinner(ALICE.id());
+
+        GameState restored = serializer.fromJson(serializer.toJson(original));
+
+        assertTrue(restored.isEnded());
+        assertEquals(List.of(ALICE.id()), restored.winners());
+    }
+
+    @Test
+    void defaultsToNotEndedWhenFieldIsAbsent() {
+        String legacyStateWithoutEnded = """
+                {
+                  "players": [{ "id": "alice", "displayName": "Alice" }],
+                  "currentPlayerIndex": 0,
+                  "sharedZones": {},
+                  "perPlayerZones": {}
+                }
+                """;
+
+        GameState restored = serializer.fromJson(legacyStateWithoutEnded);
+
+        assertEquals(false, restored.isEnded());
+        assertEquals(List.of(), restored.winners());
+    }
 }

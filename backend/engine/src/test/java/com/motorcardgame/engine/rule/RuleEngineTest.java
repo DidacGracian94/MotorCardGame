@@ -1,13 +1,18 @@
 package com.motorcardgame.engine.rule;
 
 import com.motorcardgame.engine.event.Event;
+import com.motorcardgame.engine.rule.action.DeclareWinnerAction;
 import com.motorcardgame.engine.rule.condition.AndCondition;
+import com.motorcardgame.engine.rule.condition.ZoneIsEmptyCondition;
+import com.motorcardgame.engine.rule.target.CurrentPlayerTarget;
 import com.motorcardgame.engine.state.Card;
 import com.motorcardgame.engine.state.CardId;
 import com.motorcardgame.engine.state.GameState;
 import com.motorcardgame.engine.state.LinearZone;
+import com.motorcardgame.engine.state.Ownership;
 import com.motorcardgame.engine.state.Player;
 import com.motorcardgame.engine.state.PlayerId;
+import com.motorcardgame.engine.state.ZoneRef;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -111,6 +116,36 @@ class RuleEngineTest {
         assertTrue(engine.handle(Event.of("CARD_PLAYED"), state));
         assertTrue(engine.handle(new Event("CARD_PLAYED", Map.of("cardId", "whatever#1")), state));
         assertEquals(2, executions[0]);
+    }
+
+    @Test
+    void declaresCurrentPlayerWinnerWhenHandBecomesEmptyAfterPlayingLastCard() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+        LinearZone aliceHand = new LinearZone();
+        aliceHand.pushTop(new Card(new CardId("last-card"), Map.of()));
+        state.registerPlayerZone(ALICE.id(), "hand", aliceHand);
+        state.registerPlayerZone(BOB.id(), "hand", new LinearZone());
+        state.registerSharedZone("discard", new LinearZone());
+
+        ZoneRef handZone = new ZoneRef("hand", Ownership.PER_PLAYER);
+        Rule playLastCard = new Rule("CARD_PLAYED",
+                ctx -> {
+                    ((LinearZone) ctx.gameState().zoneOfCurrentPlayer("hand")).popTop();
+                    return true;
+                },
+                ctx -> List.of(),
+                ctx -> { });
+        Rule declareWinnerOnEmptyHand = new Rule(
+                "CARD_PLAYED",
+                new ZoneIsEmptyCondition(handZone),
+                new CurrentPlayerTarget(),
+                new DeclareWinnerAction());
+        RuleEngine engine = new RuleEngine(List.of(playLastCard, declareWinnerOnEmptyHand));
+
+        assertTrue(engine.handle(Event.of("CARD_PLAYED"), state));
+
+        assertTrue(state.isEnded());
+        assertEquals(List.of(ALICE.id()), state.winners());
     }
 
     private static GameState newStateWithPileOf(int cardCount) {

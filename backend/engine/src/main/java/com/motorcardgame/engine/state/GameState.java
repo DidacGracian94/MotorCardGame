@@ -1,10 +1,12 @@
 package com.motorcardgame.engine.state;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Estado mutable en memoria de una partida en curso: jugadores, turno actual y zonas. No es
@@ -24,6 +26,8 @@ public final class GameState {
     private final Map<String, Zone> sharedZones = new LinkedHashMap<>();
     private final Map<String, Map<PlayerId, Zone>> perPlayerZones = new LinkedHashMap<>();
     private final Map<String, Object> variables = new LinkedHashMap<>();
+    private boolean ended;
+    private final Set<PlayerId> winners = new LinkedHashSet<>();
 
     public GameState(List<Player> players) {
         this(players, 0, 1);
@@ -45,6 +49,16 @@ public final class GameState {
      * conserve entre peticiones, en vez de volver siempre hacia adelante al deserializar.
      */
     public GameState(List<Player> players, int currentPlayerIndex, int direction) {
+        this(players, currentPlayerIndex, direction, false, List.of());
+    }
+
+    /**
+     * Igual que {@link #GameState(List, int, int)} pero reconstruyendo también si la partida ya
+     * había terminado y quién la había ganado — lo usa {@code GameStateSerializer} para que una
+     * partida ya cerrada (ver {@code DECLARE_WINNER}) conserve ese cierre entre peticiones, en vez
+     * de "reabrirse" al deserializar.
+     */
+    public GameState(List<Player> players, int currentPlayerIndex, int direction, boolean ended, List<PlayerId> winners) {
         this.players = List.copyOf(Objects.requireNonNull(players, "players"));
         boolean outOfRange = currentPlayerIndex < 0 || currentPlayerIndex >= this.players.size();
         if (!this.players.isEmpty() && outOfRange) {
@@ -55,6 +69,8 @@ public final class GameState {
         }
         this.currentPlayerIndex = currentPlayerIndex;
         this.direction = direction;
+        this.ended = ended;
+        this.winners.addAll(Objects.requireNonNull(winners, "winners"));
     }
 
     public List<Player> players() {
@@ -199,5 +215,30 @@ public final class GameState {
      */
     public Map<String, Object> variables() {
         return Map.copyOf(variables);
+    }
+
+    /**
+     * Declara a {@code id} ganador y marca la partida como terminada — dispara la acción
+     * {@code DECLARE_WINNER} sobre el jugador que resuelva el target de la regla (p.ej.
+     * {@code CURRENT_PLAYER} al vaciar la mano). Añadir al mismo jugador dos veces no lo duplica;
+     * una regla que resuelva a varios jugadores a la vez (p.ej. un empate) declara varios ganadores
+     * sin que este método sepa nada de esa mecánica en concreto.
+     */
+    public void declareWinner(PlayerId id) {
+        Objects.requireNonNull(id, "id");
+        winners.add(id);
+        ended = true;
+    }
+
+    public boolean isEnded() {
+        return ended;
+    }
+
+    /**
+     * Vista de solo lectura de los jugadores declarados ganadores, en el orden en que se
+     * declararon. Vacía mientras la partida no ha terminado.
+     */
+    public List<PlayerId> winners() {
+        return List.copyOf(winners);
     }
 }

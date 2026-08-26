@@ -3,6 +3,7 @@ package com.motorcardgame.app.gamedefinition.web;
 import com.motorcardgame.app.gamedefinition.application.GameDefinitionAccessDeniedException;
 import com.motorcardgame.app.gamedefinition.application.GameDefinitionNotFoundException;
 import com.motorcardgame.app.gamedefinition.application.SlugAlreadyExistsException;
+import com.motorcardgame.app.gamedefinition.instance.application.GameAlreadyEndedException;
 import com.motorcardgame.app.gamedefinition.instance.application.GameInstanceNotFoundException;
 import com.motorcardgame.app.gamedefinition.instance.application.NotPlayersTurnException;
 import com.motorcardgame.app.gamedefinition.instance.application.PlayerActionRejectedException;
@@ -66,6 +67,11 @@ class GameDefinitionExceptionHandler {
     @ExceptionHandler(PlayerActionRejectedException.class)
     ResponseEntity<String> handlePlayerActionRejected(PlayerActionRejectedException ex) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(GameAlreadyEndedException.class)
+    ResponseEntity<String> handleGameAlreadyEnded(GameAlreadyEndedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
 
     @ExceptionHandler(UnknownPlayerActionException.class)

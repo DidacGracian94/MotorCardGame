@@ -23,11 +23,13 @@ import com.motorcardgame.engine.config.RuleSetParser;
 import com.motorcardgame.engine.exception.InvalidGameDefinitionException;
 import com.motorcardgame.engine.rule.Rule;
 import com.motorcardgame.engine.rule.condition.AndCondition;
+import com.motorcardgame.engine.rule.action.DeclareWinnerAction;
 import com.motorcardgame.engine.rule.action.NextPlayerAction;
 import com.motorcardgame.engine.rule.target.CurrentPlayerTarget;
 import com.motorcardgame.engine.state.GameState;
 import com.motorcardgame.engine.state.Player;
 import com.motorcardgame.engine.state.PlayerId;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -197,6 +199,40 @@ class GameInstanceServiceTest {
 
         assertThat(updated.state()).isEqualTo("{\"after\":true}");
         assertThat(state.currentPlayer().id()).isEqualTo(bob);
+    }
+
+    @Test
+    void applyAction_setsEndedAt_whenResultingStateIsEnded() {
+        PlayerId alice = new PlayerId("alice");
+        GameState state = new GameState(List.of(new Player(alice, "Alice")));
+        GameInstance instance = GameInstance.create(UUID.randomUUID(), UUID.randomUUID(), "{\"before\":true}");
+        GameDefinitionVersion version = GameDefinitionVersion.publish(instance.gameDefinitionId(), 1, "{\"rules\":[]}");
+        Rule declareWinnerRule = new Rule(
+                "CARD_PLAYED", new AndCondition(), new CurrentPlayerTarget(), new DeclareWinnerAction());
+        when(repository.findById(instance.id())).thenReturn(Optional.of(instance));
+        when(gameDefinitionVersionService.getById(instance.gameDefinitionVersionId())).thenReturn(version);
+        when(ruleSetParser.parsePlayerActions(version.config())).thenReturn(Set.of("CARD_PLAYED"));
+        when(ruleSetParser.parse(version.config())).thenReturn(List.of(declareWinnerRule));
+        when(gameStateSerializer.fromJson(instance.state())).thenReturn(state);
+        when(gameStateSerializer.toJson(state)).thenReturn("{\"after\":true}");
+        when(repository.save(any(GameInstance.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        GameInstance updated = service.applyAction(instance.id(), alice, "CARD_PLAYED", Map.of());
+
+        assertThat(updated.endedAt()).isNotNull();
+    }
+
+    @Test
+    void applyAction_throwsGameAlreadyEnded_whenInstanceAlreadyEnded() {
+        PlayerId alice = new PlayerId("alice");
+        GameInstance instance = GameInstance.create(UUID.randomUUID(), UUID.randomUUID(), "{}")
+                .withEndedAt(Instant.now());
+        when(repository.findById(instance.id())).thenReturn(Optional.of(instance));
+
+        assertThatThrownBy(() -> service.applyAction(instance.id(), alice, "CARD_PLAYED", Map.of()))
+                .isInstanceOf(GameAlreadyEndedException.class);
+        verifyNoInteractions(gameDefinitionVersionService);
+        verify(repository, never()).save(any());
     }
 
     @Test

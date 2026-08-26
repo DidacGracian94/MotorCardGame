@@ -35,6 +35,16 @@ public final class GameInstance {
         return new GameInstance(id, gameDefinitionId, gameDefinitionVersionId, newState, createdAt, endedAt);
     }
 
+    /**
+     * Marca la partida como terminada — la usa {@code GameInstanceService.applyAction} cuando el
+     * {@code GameState} resultante de aplicar el evento sale con {@code isEnded()} a {@code true}
+     * (ver la acción de motor {@code DECLARE_WINNER}), para que quede reflejado en la columna
+     * {@code ended_at} y no solo dentro del JSON de {@code state}.
+     */
+    public GameInstance withEndedAt(Instant endedAt) {
+        return new GameInstance(id, gameDefinitionId, gameDefinitionVersionId, state, createdAt, endedAt);
+    }
+
     public static GameInstance reconstitute(
             UUID id,
             UUID gameDefinitionId,

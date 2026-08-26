@@ -7,6 +7,7 @@ import com.motorcardgame.engine.exception.InvalidGameDefinitionException;
 import com.motorcardgame.engine.rule.Action;
 import com.motorcardgame.engine.rule.Condition;
 import com.motorcardgame.engine.rule.action.AddPointsAction;
+import com.motorcardgame.engine.rule.action.DeclareWinnerAction;
 import com.motorcardgame.engine.rule.action.DrawCardsAction;
 import com.motorcardgame.engine.rule.action.MoveAllCardsAction;
 import com.motorcardgame.engine.rule.action.MoveCardAction;
@@ -150,6 +151,13 @@ public final class StandardCapabilities {
                                 + " baza), sin respetar el orden de asiento.",
                         List.of()),
                 (node, parser) -> new SetCurrentPlayerAction());
+
+        actionRegistry.register(
+                CapabilityDescriptor.action("DECLARE_WINNER",
+                        "Declara ganador al target resuelto por la regla y marca la partida como terminada"
+                                + " (p.ej. CURRENT_PLAYER al vaciar la mano en UNO).",
+                        List.of()),
+                (node, parser) -> new DeclareWinnerAction());
 
         actionRegistry.register(
                 CapabilityDescriptor.action("REMEMBER_CARD_ATTRIBUTE",

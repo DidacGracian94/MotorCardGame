@@ -247,4 +247,50 @@ class GameStateTest {
         assertThrows(UnsupportedOperationException.class,
                 () -> state.sharedZones().put("discard", new LinearZone()));
     }
+
+    @Test
+    void isNotEndedByDefault() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+
+        assertFalse(state.isEnded());
+        assertEquals(List.of(), state.winners());
+    }
+
+    @Test
+    void declareWinnerEndsGameAndRecordsWinner() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+
+        state.declareWinner(ALICE.id());
+
+        assertTrue(state.isEnded());
+        assertEquals(List.of(ALICE.id()), state.winners());
+    }
+
+    @Test
+    void declareWinnerTwiceForSamePlayerDoesNotDuplicate() {
+        GameState state = new GameState(List.of(ALICE, BOB));
+
+        state.declareWinner(ALICE.id());
+        state.declareWinner(ALICE.id());
+
+        assertEquals(List.of(ALICE.id()), state.winners());
+    }
+
+    @Test
+    void declareWinnerForMultiplePlayersRecordsAll() {
+        GameState state = new GameState(List.of(ALICE, BOB, CAROL));
+
+        state.declareWinner(ALICE.id());
+        state.declareWinner(BOB.id());
+
+        assertEquals(List.of(ALICE.id(), BOB.id()), state.winners());
+    }
+
+    @Test
+    void constructorWithEndedAndWinnersRestoresClosedGame() {
+        GameState state = new GameState(List.of(ALICE, BOB), 0, 1, true, List.of(BOB.id()));
+
+        assertTrue(state.isEnded());
+        assertEquals(List.of(BOB.id()), state.winners());
+    }
 }

@@ -31,6 +31,7 @@ class StandardCapabilitiesTest {
         assertTrue(actionRegistry.contains("MOVE_ALL_CARDS"));
         assertTrue(actionRegistry.contains("SET_CURRENT_PLAYER"));
         assertTrue(actionRegistry.contains("REMEMBER_CARD_ATTRIBUTE"));
+        assertTrue(actionRegistry.contains("DECLARE_WINNER"));
 
         assertTrue(conditionRegistry.contains("ZONE_IS_EMPTY"));
         assertTrue(conditionRegistry.contains("CARD_ATTRIBUTE_EQUALS"));
@@ -48,7 +49,7 @@ class StandardCapabilitiesTest {
         assertTrue(targetRegistry.contains("NEXT_PLAYER"));
         assertTrue(targetRegistry.contains("WINNING_CARD_OWNER"));
 
-        assertEquals(10, actionRegistry.describeAll().size());
+        assertEquals(11, actionRegistry.describeAll().size());
         assertEquals(10, conditionRegistry.describeAll().size());
         assertEquals(4, targetRegistry.describeAll().size());
     }

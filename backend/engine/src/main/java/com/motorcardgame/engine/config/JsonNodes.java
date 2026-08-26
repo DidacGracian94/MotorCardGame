@@ -58,6 +58,17 @@ public final class JsonNodes {
         return value.asInt();
     }
 
+    public static boolean optionalBoolean(JsonNode node, String field, boolean defaultValue) {
+        JsonNode value = node.path(field);
+        if (value.isMissingNode() || value.isNull()) {
+            return defaultValue;
+        }
+        if (!value.isBoolean()) {
+            throw new InvalidGameDefinitionException("field \"" + field + "\" must be a boolean: " + node);
+        }
+        return value.asBoolean();
+    }
+
     public static String optionalText(JsonNode node, String field, String defaultValue) {
         JsonNode value = node.path(field);
         if (value.isMissingNode() || value.isNull()) {
